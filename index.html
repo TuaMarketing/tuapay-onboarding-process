@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TuaPay Merchant Onboarding — Horizontal Flow</title>
 <style>
@@ -9,196 +9,204 @@
   :root{
     --bg:#f5f7fa;
     --grid:#dcdcdc55;
-    --ink:#2c3e50;
+    --ink:#0e374e;
     --muted:#6c757d;
     --line:#8a98a6;
+
+    /* requested colors */
     --email:#cddd72;
     --trigger:#ff7c33;
     --call:#47b7c9;
     --start:#ff7c33;
-    --accent:#2754eb;
-    --card-w:280px;
-    --card-h:120px;
-    --border:3px;
-  }
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:var(--bg);overflow:hidden}
 
-  /* Canvas */
-  #canvas-container{
-    width:100vw;height:100vh;position:relative;overflow:hidden;cursor:grab;
+    /* sizing */
+    --card-w: 300px;
+    --card-h: 120px;
+    --border: 3px;
+  }
+
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:var(--bg);height:100vh;overflow:hidden;}
+
+  /* Viewport scrolls; workarea holds headings+nodes+edges together */
+  #viewport{
+    width:100vw;height:100vh;overflow:auto;position:relative;cursor:default;
     background-image:
       linear-gradient(var(--grid) 1px, transparent 1px),
       linear-gradient(90deg, var(--grid) 1px, transparent 1px);
     background-size:24px 24px;
   }
-  #canvas-container.grabbing{cursor:grabbing}
-  #canvas{position:absolute;width:5200px;height:1800px;transform-origin:0 0;}
-  #edges-layer{position:absolute;left:0;top:0;width:5200px;height:1800px;pointer-events:none}
-
-  /* Lane titles (not boxed) */
-  .lane-title{
-    position:absolute; font-weight:800; font-size:20px; color:#0e374e;
-    background:transparent; padding:0; margin:0 0 8px; letter-spacing:.2px;
+  #workarea{
+    position:relative; width: 6200px; height: 1900px;
+    transform-origin: 0 0;
   }
 
-  /* Uniform node cards */
+  /* headings (not inside boxes) */
+  .lane-title{
+    position:absolute; font-size:26px; font-weight:900; color:var(--ink); letter-spacing:.2px;
+  }
+
+  /* base node */
   .node{
     position:absolute; width:var(--card-w); height:var(--card-h);
-    background:#fff; border-radius:12px; padding:14px 14px 10px;
-    box-shadow:0 2px 10px rgba(0,0,0,.06);
-    border:var(--border) solid #dfe3e8; cursor:pointer;
-    transition:box-shadow .18s, transform .18s, border-color .18s;
+    display:flex; flex-direction:column; justify-content:flex-start;
+    align-items:flex-start; padding:12px 14px 10px; background:#fff;
+    border-radius:12px; border:var(--border) solid #dfe3e8; box-shadow:0 2px 8px rgba(0,0,0,.06);
+    transition:transform .15s, box-shadow .15s, outline-color .15s;
+    cursor:pointer;
   }
-  .node:hover{box-shadow:0 8px 22px rgba(0,0,0,.13); transform:translateY(-2px)}
-  .node.selected{outline:3px solid #a9c7ff; outline-offset:2px}
+  .node:hover{ transform:translateY(-2px); box-shadow:0 8px 22px rgba(0,0,0,.12); }
+  .node.selected{ outline:3px solid #a9c7ff; outline-offset:2px; }
 
-  .node .top{
-    display:flex; align-items:center; gap:8px; margin-bottom:6px;
-  }
+  .node .top{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
   .node .icon{font-size:18px}
-  .node .title{font-size:14px; font-weight:700; color:var(--ink); line-height:1.25;}
-  .node .type{font-size:11px; text-transform:uppercase; color:var(--muted); letter-spacing:.5px; margin-top:4px}
+  .node .title{font-size:14px; font-weight:800; color:#142d3f; line-height:1.25;}
+  .node .type{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-top:4px;}
 
-  /* Type borders */
+  /* email = white interior + colored border */
   .type-email{ border-color: var(--email); }
-  .type-trigger{ border-color: var(--trigger); }
-  .type-call{ border-color: var(--call); }
+
+  /* start = white interior + orange text + orange border */
   .type-terminator{ border-color: var(--start); }
-  /* START: orange text */
   .type-terminator .title, .type-terminator .type{ color: var(--start); }
 
-  /* Decision (neutral) */
+  /* decision = dashed */
   .type-decision{ border-style:dashed; border-color:#b9c2cc; }
 
-  /* Preview badge */
-  .preview-badge{
-    position:absolute; right:10px; bottom:10px; font-size:11px; padding:3px 6px;
-    border-radius:6px; border:1px solid #dfe3e8; color:#2747aa; background:#fff; text-decoration:none;
+  /* SHAPES for non-emails */
+  /* diamond (Trigger) */
+  .shape-diamond{
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    padding:22px 18px; /* bring text away from edges */
+    border-color: var(--trigger);
   }
-  .preview-badge:hover{background:#f4f7ff;border-color:#cfd8ff}
+  /* circle (CS Call) */
+  .shape-circle{
+    width:160px; height:160px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    border-color: var(--call); padding:16px;
+  }
+  .shape-circle .title{ font-size:13px; line-height:1.25; }
+  .shape-circle .type{ margin-top:6px; }
 
-  /* Edges */
-  svg.edges{position:absolute;left:0;top:0;width:100%;height:100%}
-  .edge-path{stroke:var(--line);stroke-width:2.2;fill:none;marker-end:url(#arrowhead)}
+  /* keep email/decision/start rectangular */
+  .shape-rect{ /* default rectangle */ }
+
+  /* Edges layer (inside same workarea so it stays aligned) */
+  #edges{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
+  .edge-path{ stroke:var(--line); stroke-width:2.2; fill:none; marker-end:url(#arrowhead); }
   .edge-label{
     position:absolute; background:#fff; padding:3px 6px; border-radius:4px; font-size:11px;
     color:#c23b2a; font-weight:800; box-shadow:0 1px 4px rgba(0,0,0,.08); pointer-events:none;
   }
 
-  /* Side panel */
-  #side-panel{position:fixed;right:-420px;top:0;width:420px;height:100vh;background:#fff;
-    box-shadow:-4px 0 16px rgba(0,0,0,.1);transition:right .28s;overflow-y:auto;z-index:1000}
+  /* panel */
+  #side-panel{position:fixed; right:-440px; top:0; width:440px; height:100vh; background:#fff; z-index:1000;
+    box-shadow:-4px 0 16px rgba(0,0,0,.1); transition:right .28s; overflow:auto;}
   #side-panel.open{right:0}
-  .panel-header{padding:18px;border-bottom:1px solid #e1e4e8;background:#0e2a47;color:#fff;display:flex;justify-content:space-between;align-items:center}
-  .panel-title{font-size:18px;font-weight:800}
-  .panel-close{cursor:pointer;font-size:26px;background:none;border:none;color:#fff;line-height:1}
+  .panel-header{padding:18px;background:#0e2a47;color:#fff;display:flex;align-items:center;justify-content:space-between}
+  .panel-title{font-size:18px;font-weight:900}
+  .panel-close{background:none;border:none;color:#fff;font-size:26px;line-height:1;cursor:pointer}
   .panel-content{padding:18px}
-  .panel-section{margin-bottom:18px}
-  .panel-section-title{font-size:12px;font-weight:800;text-transform:uppercase;color:#6c757d;margin-bottom:6px;letter-spacing:.5px}
-  .panel-section-content{font-size:14px;color:var(--ink);line-height:1.55}
-  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;border:1px solid #dfe3e8;background:#fff;color:#2754eb;text-decoration:none;font-size:14px;font-weight:700}
-  .btn:hover{background:#f4f7ff;border-color:#cfd8ff}
+  .panel-section{margin-bottom:16px}
+  .panel-section-title{font-size:12px;font-weight:900;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .panel-section-content{font-size:14px;color:#142d3f;line-height:1.5;word-break:break-word}
+  .asset-link{display:block;padding:6px 8px;margin:4px 0;background:#f7f8fa;border:1px solid #e7eaef;border-radius:6px;color:#2a5bd7;text-decoration:none}
+  .asset-link:hover{background:#eef2ff}
 
-  /* Legend – white interior, colored borders */
+  /* legend (white interior + colored borders) */
   .legend{
     position:fixed; top:16px; right:16px; background:#fff; border-radius:10px; padding:12px 14px;
-    box-shadow:0 2px 10px rgba(0,0,0,.08); z-index:500;
+    box-shadow:0 2px 10px rgba(0,0,0,.08); z-index:900;
   }
-  .legend-title{font-size:13px;font-weight:800;color:#0e374e;margin-bottom:8px}
-  .legend-item{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12px;color:#445061}
-  .chip{
-    width:22px;height:16px;border-radius:4px;background:#fff;border:var(--border) solid #dfe3e8;
-  }
+  .legend-title{font-size:13px;font-weight:900;color:#0e374e;margin-bottom:8px}
+  .legend-item{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:#445061}
+  .chip{width:22px;height:16px;border-radius:4px;background:#fff;border:var(--border) solid #dfe3e8;}
   .chip.email{border-color:var(--email)}
   .chip.trigger{border-color:var(--trigger)}
   .chip.call{border-color:var(--call)}
   .chip.start{border-color:var(--start)}
   .chip.decision{border-color:#b9c2cc;border-style:dashed}
 
-  /* Controls */
-  .controls{position:fixed;bottom:18px;left:18px;display:flex;gap:10px;z-index:200}
+  /* controls */
+  .controls{position:fixed;bottom:16px;left:16px;display:flex;gap:10px;z-index:900}
   .control-btn{background:#fff;border:1px solid #dee2e6;border-radius:8px;padding:10px 16px;cursor:pointer;font-size:14px}
-  .control-btn:hover{background:#f8f9fa;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+  .control-btn:hover{background:#f3f4f6}
 </style>
 </head>
 <body>
-  <div id="canvas-container">
-    <!-- arrowhead defs -->
-    <svg style="position:absolute;width:0;height:0;">
+
+<div id="viewport">
+  <div id="workarea">
+
+    <!-- defs for arrowheads -->
+    <svg style="position:absolute;width:0;height:0">
       <defs>
         <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-          <polygon points="0 0, 10 3, 0 6" fill="#8a98a6" />
+          <polygon points="0 0, 10 3, 0 6" fill="#8a98a6"/>
         </marker>
       </defs>
     </svg>
 
-    <!-- edges layer -->
-    <svg class="edges" id="edges-layer" viewBox="0 0 5200 1800" preserveAspectRatio="none"></svg>
+    <!-- headings (scroll + zoom together with nodes) -->
+    <h2 class="lane-title" style="left:200px; top:70px;">Phase 1 – Onboarding</h2>
+    <h2 class="lane-title" style="left:200px; top:700px;">Phase 2 – Activation → Advocacy</h2>
+    <h2 class="lane-title" style="left:4100px; top:70px;">Sub-Flows</h2>
 
-    <!-- lane headings -->
-    <h2 class="lane-title" id="title-phase1" style="left:200px; top:80px;">Phase 1 – Onboarding</h2>
-    <h2 class="lane-title" id="title-phase2" style="left:200px; top:650px;">Phase 2 – Activation → Advocacy</h2>
-    <h2 class="lane-title" id="title-sub"    style="left:3600px; top:80px;">Sub‑Flows</h2>
+    <!-- edges -->
+    <svg id="edges"></svg>
 
-    <!-- nodes -->
-    <div id="canvas"></div>
+    <!-- nodes container -->
+    <div id="nodes"></div>
+
   </div>
+</div>
 
-  <div class="legend">
-    <div class="legend-title">Legend</div>
-    <div class="legend-item"><span class="chip email"></span> Email</div>
-    <div class="legend-item"><span class="chip start"></span> Start (orange text)</div>
-    <div class="legend-item"><span class="chip trigger"></span> Trigger</div>
-    <div class="legend-item"><span class="chip call"></span> CS Call</div>
-    <div class="legend-item"><span class="chip decision"></span> Decision</div>
-  </div>
+<!-- legend -->
+<div class="legend">
+  <div class="legend-title">Legend</div>
+  <div class="legend-item"><span class="chip email"></span> Email</div>
+  <div class="legend-item"><span class="chip start"></span> Start (orange text)</div>
+  <div class="legend-item"><span class="chip trigger"></span> Trigger (diamond)</div>
+  <div class="legend-item"><span class="chip call"></span> CS Call (circle)</div>
+  <div class="legend-item"><span class="chip decision"></span> Decision (dashed)</div>
+</div>
 
-  <div class="controls">
-    <button class="control-btn" onclick="zoomIn()">Zoom In</button>
-    <button class="control-btn" onclick="zoomOut()">Zoom Out</button>
-    <button class="control-btn" onclick="resetView()">Reset View</button>
-  </div>
+<!-- controls -->
+<div class="controls">
+  <button class="control-btn" onclick="zoom(1.1)">Zoom In</button>
+  <button class="control-btn" onclick="zoom(0.9)">Zoom Out</button>
+  <button class="control-btn" onclick="resetZoom()">Reset View</button>
+</div>
 
-  <div id="side-panel">
-    <div class="panel-header">
-      <div class="panel-title">Step Details</div>
-      <button class="panel-close" onclick="closePanel()">×</button>
-    </div>
-    <div class="panel-content" id="panel-content"></div>
+<!-- side panel -->
+<div id="side-panel">
+  <div class="panel-header">
+    <div class="panel-title">Step Details</div>
+    <button class="panel-close" onclick="closePanel()">×</button>
   </div>
+  <div class="panel-content" id="panel-content"></div>
+</div>
 
 <script>
-/* ---------------- HubSpot Preview Links ----------------
-   Paste your real preview URLs here (key = node id):
-   Example:
-   HS_PREVIEWS = {
-     "n2_day0_welcome": "https://app.hubspot.com/.../preview/abc",
-     "n3_day1_portal": "https://app.hubspot.com/.../preview/def"
-   };
--------------------------------------------------------- */
-let HS_PREVIEWS = {};
-
-/* Update later without reloading: setHubSpotPreviewLinks({...}) */
-window.setHubSpotPreviewLinks = mapping => {
-  HS_PREVIEWS = { ...HS_PREVIEWS, ...mapping };
-  refreshPreviewBadges();
-  if (currentNodeInPanel) openPanel(currentNodeInPanel);
+/* ---------------- HubSpot previews: paste your links here ---------------- */
+let HS_PREVIEWS = {
+  // "n2_day0_welcome": "https://app.hubspot.com/email/.../preview/abc",
 };
 
-/* ---------------- Flow Data (same content) ---------------- */
+/* ---------------- Flow data (same content you had, trimmed for brevity) --- */
 const flowData = {
   nodes: [
-    {id:"n0_start", lane:"phase1", title:"Start: Sales → Merchant Success Handoff", type:"Terminator"},
-    {id:"n1_live_onboarding", lane:"phase1", title:"Merchant Status = 'Live – Onboarding'", type:"Trigger"},
-    {id:"n2_day0_welcome", lane:"phase1", title:"Day 0 — Welcome to TuaPay", type:"Email"},
-    {id:"n3_day1_portal", lane:"phase1", title:"Day 1 — Your Portal & Pre-Qual Link Are Ready", type:"Email"},
-    {id:"n4_day3_team_setup", lane:"phase1", title:"Day 3 — Add Your Team in Under 2 Minutes", type:"Email"},
-    {id:"n5_day7_test_invoice", lane:"phase1", title:"Day 7 — Try a Test Invoice Today", type:"Email"},
-    {id:"n6_day10_promote_clients", lane:"phase1", title:"Day 10 — Help Clients Say Yes with Financing", type:"Email"},
-    {id:"n7_day14_cs_check", lane:"phase1", title:"Day 14 — CS Call: First Transaction Check-In", type:"Call"},
-    {id:"n8_day21_encouragement", lane:"phase1", title:"Day 21 — Merchants Like You Succeed With…", type:"Email"},
-    {id:"n9_day30_cs_final", lane:"phase1", title:"Day 30 — CS Call: Final 30-Day Check-In", type:"Call"},
-    {id:"n10_usage_check", lane:"phase1", title:"Usage Check Decision Point", type:"Decision"},
+    {id:"n0_start", lane:"phase1", title:"Start: Sales → Merchant Success Handoff", type:"Terminator", HubSpotTrigger:"Deal moves to post-Closed Won", NextStepLogic:"Immediate → n1_live_onboarding"},
+    {id:"n1_live_onboarding", lane:"phase1", title:"Merchant Status = 'Live – Onboarding'", type:"Trigger", HubSpotTrigger:"Set property", NextStepLogic:"Immediate → n2_day0_welcome"},
+    {id:"n2_day0_welcome", lane:"phase1", title:"Day 0 — Welcome to TuaPay", type:"Email", EmailCopy:"Welcome email…", NextStepLogic:"+1 day → n3_day1_portal"},
+    {id:"n3_day1_portal", lane:"phase1", title:"Day 1 — Your Portal & Pre-Qual Link Are Ready", type:"Email", EmailCopy:"Portal ready…", NextStepLogic:"+2 days → n4_day3_team_setup"},
+    {id:"n4_day3_team_setup", lane:"phase1", title:"Day 3 — Add Your Team in Under 2 Minutes", type:"Email", NextStepLogic:"+4 days → n5_day7_test_invoice"},
+    {id:"n5_day7_test_invoice", lane:"phase1", title:"Day 7 — Try a Test Invoice Today", type:"Email", NextStepLogic:"+3 days → n6_day10_promote_clients"},
+    {id:"n6_day10_promote_clients", lane:"phase1", title:"Day 10 — Help Clients Say Yes with Financing", type:"Email", NextStepLogic:"+4 days → n7_day14_cs_check"},
+    {id:"n7_day14_cs_check", lane:"phase1", title:"Day 14 — CS Call: First Transaction Check-In", type:"Call", NextStepLogic:"+7 days → n8_day21_encouragement"},
+    {id:"n8_day21_encouragement", lane:"phase1", title:"Day 21 — Merchants Like You Succeed With…", type:"Email", NextStepLogic:"+9 days → n9_day30_cs_final"},
+    {id:"n9_day30_cs_final", lane:"phase1", title:"Day 30 — CS Call: Final 30-Day Check-In", type:"Call", NextStepLogic:"Evaluate → n10_usage_check"},
+    {id:"n10_usage_check", lane:"phase1", title:"Usage Check Decision Point", type:"Decision", NextStepLogic:"Active → Phase 2, Low/No → Recovery, Turnover → Re-onboarding"},
 
     {id:"p2_1_first_loan", lane:"phase2", title:"Trigger: 1st Loan", type:"Trigger"},
     {id:"p2_2_live_momentum", lane:"phase2", title:"You're Live — Let's Build Momentum", type:"Email"},
@@ -224,241 +232,245 @@ const flowData = {
     ["n7_day14_cs_check","n8_day21_encouragement","+7 days"],
     ["n8_day21_encouragement","n9_day30_cs_final","+9 days"],
     ["n9_day30_cs_final","n10_usage_check","Evaluate"],
+
     ["n10_usage_check","p2_1_first_loan","Active Usage"],
     ["n10_usage_check","sf_low1_explore","Low/No Usage"],
     ["n10_usage_check","sf_turn1_newstaff","Staff Turnover"],
+
     ["p2_1_first_loan","p2_2_live_momentum",""],
     ["p2_2_live_momentum","p2_3_peer_usage","+7 days"],
     ["p2_3_peer_usage","p2_4_branch_usage","+23 days"],
     ["p2_4_branch_usage","p2_champions","High Usage"],
-    ["sf_low1_explore","sf_low2_connect","+5-7 days"],
-    ["sf_low2_connect","sf_low3_coach","+5-7 days"],
-    ["sf_turn1_newstaff","sf_turn2_portal","+3-4 days"],
+
+    ["sf_low1_explore","sf_low2_connect","+5–7 days"],
+    ["sf_low2_connect","sf_low3_coach","+5–7 days"],
+    ["sf_turn1_newstaff","sf_turn2_portal","+3–4 days"],
     ["sf_turn2_portal","sf_turn3_test","+5 days"]
   ]
 };
 
-/* ---------------- Globals ---------------- */
-const canvas = document.getElementById('canvas');
-const edgesLayer = document.getElementById('edges-layer');
-const container = document.getElementById('canvas-container');
-let scale = 1, tx = -140, ty = -40, dragging = false, sx=0, sy=0;
+/* ---------------- layout: positions and shapes ---------------- */
+const nodesEl = document.getElementById('nodes');
+const edgesEl = document.getElementById('edges');
+const workarea = document.getElementById('workarea');
+let scale = 1;
+
 const nodeEls = {};
 let selectedNode = null;
 let currentNodeInPanel = null;
 
-const iconMap = { Email:"✉️", Call:"📞", Trigger:"⚙️", Decision:"◆", Terminator:"🎯" };
+function build(){
+  // positions
+  const pos = {};
 
-/* ---------------- Init ---------------- */
-window.addEventListener('load', () => {
-  placeNodesHorizontal();
-  drawEdgesOrthogonal();
-  applyTransform();
-  refreshPreviewBadges();
-});
-
-/* ---------------- Layout (Horizontal) ---------------- */
-function placeNodesHorizontal(){
-  const positions = {};
-  const laneBase = {
-    phase1: { x: 200, y: 120 },
-    phase2: { x: 200, y: 690 },
-    sub:    { x: 3600, y: 120 }
-  };
-
-  // primary lanes left->right
-  const laneOrder = { phase1:[], phase2:[], sub:[] };
-  flowData.nodes.forEach(n => laneOrder[n.lane].push(n));
-
-  let x = laneBase.phase1.x, y = laneBase.phase1.y + 40;
-  laneOrder.phase1.forEach(n => { positions[n.id] = { x, y }; x += 340; });
-
-  x = laneBase.phase2.x; y = laneBase.phase2.y + 40;
-  laneOrder.phase2.forEach(n => { positions[n.id] = { x, y }; x += 340; });
-
-  // subflows: two neat columns under "Sub‑Flows"
-  const subCols = [
-    { x: laneBase.sub.x,     y: laneBase.sub.y + 40 },
-    { x: laneBase.sub.x+360, y: laneBase.sub.y + 40 }
-  ];
-  let ci = 0;
-  laneOrder.sub.forEach(n=>{
-    positions[n.id] = { x: subCols[ci].x, y: subCols[ci].y };
-    subCols[ci].y += 170;             // vertical gap within column
-    ci = (n.id.includes('turn')) ? 1 : (n.id.includes('low') ? 0 : ci);
+  // Phase 1 – along the top row
+  let x = 200, y = 130;
+  flowData.nodes.filter(n=>n.lane==='phase1').forEach(n=>{
+    pos[n.id] = {x, y};
+    x += 360;
   });
 
-  // render
+  // Phase 2 – second row
+  x = 200; y = 760;
+  flowData.nodes.filter(n=>n.lane==='phase2').forEach(n=>{
+    pos[n.id] = {x, y};
+    x += 360;
+  });
+
+  // Sub-flows – two columns to the right
+  const baseX = 4100;
+  let lowY = 130, turnY = 130;
+  flowData.nodes.filter(n=>n.lane==='sub').forEach(n=>{
+    const colX = n.id.includes('low') ? baseX : baseX + 360;
+    const colY = n.id.includes('low') ? lowY : turnY;
+    pos[n.id] = {x: colX, y: colY};
+    if (n.id.includes('low')) lowY += 170; else turnY += 170;
+  });
+
+  // render nodes
+  nodesEl.innerHTML = '';
   flowData.nodes.forEach(n=>{
-    const el = document.createElement('div');
-    el.className = 'node ' + typeClass(n.type);
-    el.id = n.id;
-    el.style.left = positions[n.id].x + 'px';
-    el.style.top  = positions[n.id].y + 'px';
+    const div = document.createElement('div');
+    div.id = n.id;
+    div.className = `node ${typeClass(n.type)} ${shapeClass(n.type)}`;
+    div.style.left = pos[n.id].x + 'px';
+    div.style.top  = pos[n.id].y + 'px';
 
     const top = document.createElement('div'); top.className='top';
-    const ic  = document.createElement('span'); ic.className='icon'; ic.textContent = iconMap[n.type] || '📋';
+    const ic  = document.createElement('span'); ic.className='icon'; ic.textContent = iconFor(n.type);
     const ttl = document.createElement('div'); ttl.className='title'; ttl.textContent = n.title;
-    const typ = document.createElement('div'); typ.className='type'; typ.textContent = prettyType(n.type);
+    const typ = document.createElement('div'); typ.className='type'; typ.textContent = typeLabel(n.type);
 
     top.appendChild(ic); top.appendChild(ttl);
-    el.appendChild(top); el.appendChild(typ);
+    div.appendChild(top); div.appendChild(typ);
 
-    el.addEventListener('click', ()=>openPanel(n));
-    canvas.appendChild(el);
-    nodeEls[n.id] = el;
+    div.addEventListener('click',()=>openPanel(n));
+
+    nodesEl.appendChild(div);
+    nodeEls[n.id] = div;
   });
+
+  drawEdges();
 }
+
 function typeClass(t){
-  const k = t.toLowerCase();
-  if (k==='email') return 'type-email';
-  if (k==='trigger') return 'type-trigger';
-  if (k==='call') return 'type-call';
-  if (k==='terminator') return 'type-terminator';
-  if (k==='decision') return 'type-decision';
+  const k=t.toLowerCase();
+  if(k==='email') return 'type-email';
+  if(k==='terminator') return 'type-terminator';
+  if(k==='decision') return 'type-decision';
+  if(k==='call') return 'type-call';
+  if(k==='trigger') return 'type-trigger';
   return '';
 }
-function prettyType(t){
-  if (t==='Call') return 'CS Call';
-  if (t==='Terminator') return 'Start';
+function shapeClass(t){
+  const k=t.toLowerCase();
+  if(k==='email' || k==='decision' || k==='terminator') return 'shape-rect';
+  if(k==='trigger') return 'shape-diamond';
+  if(k==='call') return 'shape-circle';
+  return 'shape-rect';
+}
+function typeLabel(t){
+  if(t==='Call') return 'CS Call';
+  if(t==='Terminator') return 'Start';
   return t;
 }
+function iconFor(t){
+  if(t==='Email') return '✉️';
+  if(t==='Trigger') return '⚙️';
+  if(t==='Call') return '📞';
+  if(t==='Decision') return '◆';
+  if(t==='Terminator') return '🎯';
+  return '📋';
+}
 
-/* ---------------- Edges (Orthogonal lines) ---------------- */
-function drawEdgesOrthogonal(){
-  edgesLayer.innerHTML = '';
-  [...canvas.querySelectorAll('.edge-label')].forEach(e=>e.remove());
-  const labelFrag = document.createDocumentFragment();
+/* ---------------- edges (orthogonal) ---------------- */
+function drawEdges(){
+  edgesEl.innerHTML = ''; // clear
+  // remove old labels
+  [...workarea.querySelectorAll('.edge-label')].forEach(e=>e.remove());
 
   flowData.edges.forEach(([fromId,toId,label])=>{
     const a = getBox(nodeEls[fromId]);
     const b = getBox(nodeEls[toId]);
+
     const {sx, sy, tx, ty, orientation} = chooseAnchors(a,b);
 
-    let d = '';
-    if (orientation==='horizontal' && Math.abs(sy-ty)<6){
+    let d='';
+    if(orientation==='horizontal' && Math.abs(sy-ty)<6){
       d = `M ${sx} ${sy} L ${tx} ${ty}`;
-    } else if (orientation==='vertical' && Math.abs(sx-tx)<6){
+    }else if(orientation==='vertical' && Math.abs(sx-tx)<6){
       d = `M ${sx} ${sy} L ${tx} ${ty}`;
-    } else {
-      const midX = (sx + tx) / 2;
+    }else{
+      const midX = (sx+tx)/2;
       d = `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${ty} L ${tx} ${ty}`;
     }
 
     const path = document.createElementNS('http://www.w3.org/2000/svg','path');
     path.setAttribute('d', d);
     path.setAttribute('class','edge-path');
-    edgesLayer.appendChild(path);
+    edgesEl.appendChild(path);
 
-    if (label && label.trim() && label!=='Immediate'){
+    if(label && label.trim()){
       const tag = document.createElement('div');
-      tag.className='edge-label';
+      tag.className = 'edge-label';
       tag.textContent = label;
-      tag.style.left = ((sx+tx)/2 - 26) + 'px';
+      tag.style.left = ((sx+tx)/2 - 28) + 'px';
       tag.style.top  = ((sy+ty)/2 - 10) + 'px';
-      canvas.appendChild(tag);
-      labelFrag.appendChild(tag);
+      workarea.appendChild(tag);
     }
   });
-  canvas.appendChild(labelFrag);
 }
 
 function getBox(el){
   return {
-    x: parseFloat(el.style.left), y: parseFloat(el.style.top),
-    w: el.offsetWidth, h: el.offsetHeight,
-    cx(){ return this.x + this.w/2; }, cy(){ return this.y + this.h/2; }
+    x: parseFloat(el.style.left),
+    y: parseFloat(el.style.top),
+    w: el.offsetWidth,
+    h: el.offsetHeight,
+    cx(){ return this.x + this.w/2; },
+    cy(){ return this.y + this.h/2; }
   };
 }
 function chooseAnchors(a,b){
-  const dx = b.cx() - a.cx();
-  const dy = b.cy() - a.cy();
-  if (Math.abs(dx) >= Math.abs(dy)){ // horizontal relation
-    const sx = dx >= 0 ? a.x + a.w : a.x;
-    const tx = dx >= 0 ? b.x : b.x + b.w;
-    return { sx, sy:a.cy(), tx, ty:b.cy(), orientation:'horizontal' };
-  } else { // vertical
-    const sy = dy >= 0 ? a.y + a.h : a.y;
-    const ty = dy >= 0 ? b.y : b.y + b.h;
-    return { sx:a.cx(), sy, tx:b.cx(), ty, orientation:'vertical' };
+  const dx = b.cx()-a.cx();
+  const dy = b.cy()-a.cy();
+  if(Math.abs(dx) >= Math.abs(dy)){
+    const sx = dx>=0 ? a.x+a.w : a.x;
+    const tx = dx>=0 ? b.x : b.x+b.w;
+    return {sx, sy:a.cy(), tx, ty:b.cy(), orientation:'horizontal'};
+  }else{
+    const sy = dy>=0 ? a.y+a.h : a.y;
+    const ty = dy>=0 ? b.y : b.y+b.h;
+    return {sx:a.cx(), sy, tx:b.cx(), ty, orientation:'vertical'};
   }
 }
 
-/* ---------------- Preview badges ---------------- */
-function refreshPreviewBadges(){
-  [...document.querySelectorAll('.preview-badge')].forEach(b=>b.remove());
-  Object.entries(HS_PREVIEWS).forEach(([id,url])=>{
-    const el = nodeEls[id];
-    if (!el) return;
-    // Only badge on Email cards (but safe for any)
-    const a = document.createElement('a');
-    a.className='preview-badge';
-    a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
-    a.textContent='Preview';
-    el.appendChild(a);
-  });
-}
-
-/* ---------------- Panel ---------------- */
+/* ---------------- panel (with exact fields) ---------------- */
 function openPanel(node){
   const panel = document.getElementById('side-panel');
   const content = document.getElementById('panel-content');
-  if (selectedNode) selectedNode.classList.remove('selected');
-  selectedNode = nodeEls[node.id]; selectedNode.classList.add('selected');
+
+  if(selectedNode) selectedNode.classList.remove('selected');
+  selectedNode = nodeEls[node.id];
+  selectedNode.classList.add('selected');
   currentNodeInPanel = node;
 
-  let html = `
+  const links = (node.AssetLinks || []).map(l=>`<a class="asset-link" href="${l.url||'#'}" target="_blank" rel="noopener">${l.label||l}</a>`).join('') || '<span class="panel-section-content">—</span>';
+  const preview = HS_PREVIEWS[node.id] ? `<a class="asset-link" href="${HS_PREVIEWS[node.id]}" target="_blank" rel="noopener">Open HubSpot Preview</a>` : '<span class="panel-section-content">—</span>';
+
+  content.innerHTML = `
     <div class="panel-section"><div class="panel-section-title">Step Title</div>
-      <div class="panel-section-content">${node.title}</div></div>
+      <div class="panel-section-content">${node.title||'—'}</div></div>
+
     <div class="panel-section"><div class="panel-section-title">Step Type</div>
-      <div class="panel-section-content">${node.type==='Call'?'CS Call':(node.type==='Terminator'?'Start':node.type)}</div></div>
+      <div class="panel-section-content">${typeLabel(node.type)||'—'}</div></div>
+
+    <div class="panel-section"><div class="panel-section-title">Email Copy</div>
+      <div class="panel-section-content">${node.EmailCopy||'—'}</div></div>
+
+    <div class="panel-section"><div class="panel-section-title">Asset Links</div>
+      <div>${links}</div></div>
+
+    <div class="panel-section"><div class="panel-section-title">HubSpot Trigger</div>
+      <div class="panel-section-content">${node.HubSpotTrigger||'—'}</div></div>
+
+    <div class="panel-section"><div class="panel-section-title">Next Step Logic</div>
+      <div class="panel-section-content">${node.NextStepLogic||'—'}</div></div>
+
+    <div class="panel-section"><div class="panel-section-title">HS_PREVIEWS</div>
+      <div>${preview}</div></div>
   `;
-
-  const url = HS_PREVIEWS[node.id];
-  if (url){
-    html += `<div class="panel-section">
-      <a class="btn" href="${url}" target="_blank" rel="noopener noreferrer">🔗 Preview in HubSpot</a>
-    </div>`;
-  }
-
-  content.innerHTML = html;
   panel.classList.add('open');
 }
 function closePanel(){
   document.getElementById('side-panel').classList.remove('open');
-  if (selectedNode){ selectedNode.classList.remove('selected'); selectedNode=null; }
+  if(selectedNode){ selectedNode.classList.remove('selected'); selectedNode=null; }
   currentNodeInPanel = null;
 }
 
-/* ---------------- Pan & Zoom ---------------- */
-container.addEventListener('mousedown', e=>{
-  if (e.target===container || e.target===document.getElementById('canvas')){ dragging=true; sx=e.clientX - tx; sy=e.clientY - ty; container.classList.add('grabbing'); }
-});
-document.addEventListener('mousemove', e=>{
-  if (!dragging) return; tx = e.clientX - sx; ty = e.clientY - sy; applyTransform();
-});
-document.addEventListener('mouseup', ()=>{ dragging=false; container.classList.remove('grabbing'); });
-container.addEventListener('wheel', e=>{
-  if (e.ctrlKey || e.metaKey){ e.preventDefault(); const k = e.deltaY>0 ? 0.9 : 1.1; scale = Math.min(3, Math.max(0.35, scale*k)); applyTransform(); }
-});
-function applyTransform(){
-  const t = `translate(${tx}px, ${ty}px) scale(${scale})`;
-  document.getElementById('canvas').style.transform = t;
-  edgesLayer.style.transform = t;
+/* ---------------- zoom (scales whole workarea so arrows/headings stay aligned) */
+function zoom(factor){
+  scale = Math.min(2.5, Math.max(0.6, scale*factor));
+  workarea.style.transform = `scale(${scale})`;
 }
-function zoomIn(){ scale=Math.min(3, scale*1.2); applyTransform(); }
-function zoomOut(){ scale=Math.max(0.35, scale*0.8); applyTransform(); }
-function resetView(){ scale=1; tx=-140; ty=-40; applyTransform(); }
+function resetZoom(){
+  scale = 1;
+  workarea.style.transform = `scale(1)`;
+  document.getElementById('viewport').scrollTo({left:0, top:0, behavior:'smooth'});
+}
 
-/* Shortcuts */
-document.addEventListener('keydown', e=>{
-  if (e.key==='Escape') closePanel();
-  if (e.ctrlKey || e.metaKey){
-    if (e.key==='='){ e.preventDefault(); zoomIn(); }
-    if (e.key==='-'){ e.preventDefault(); zoomOut(); }
-    if (e.key==='0'){ e.preventDefault(); resetView(); }
-  }
-});
+/* ---------------- previews badge (optional) ---------------- */
+function refreshPreviewBadges(){
+  // you can add little badges on nodes if you like; for now we rely on the panel link
+}
+
+/* ---------------- init ---------------- */
+build();
+
+/* -------------- Notes on “Active Usage” --------------
+It's the label for the edge from the “Usage Check Decision Point” to “Trigger: 1st Loan”.
+Now it sits at the midpoint of that arrow (so it won’t float randomly anymore).
+------------------------------------------------------ */
 </script>
 </body>
 </html>
