@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TuaPay Merchant Onboarding — Horizontal Flow</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root{
+    --bg:#f5f7fa;
+    --grid:#dcdcdc55;
+    --ink:#2c3e50;
+    --muted:#7f8c8d;
+    --line:#8a98a6;
+    --brand-teal:#47b7c9;
+    --brand-navy:#085588;
+    --brand-gray:#999;
+  }
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    overflow:hidden;
+  }
+
+  /* Canvas */
+  #canvas-container{
+    width:100vw; height:100vh; position:relative; overflow:hidden; cursor:grab;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  #canvas-container.grabbing{ cursor:grabbing; }
+  #canvas{ position:absolute; width: 5200px; height: 2200px; transform-origin: 0 0; }
+
+  /* Swimlanes */
+  .swimlane{
+    position:absolute; background:#fff; border-radius:12px; padding:20px 20px 28px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  .swimlane-header{
+    font-size:16px; font-weight:700; color:#fff; padding:10px 14px; border-radius:8px; display:inline-block;
+    margin-bottom:14px;
+  }
+  .lane-caption{
+    font-size:12px; color:#6c757d; margin-top:6px;
+  }
+
+  /* Subgroups inside Sub-Flows */
+  .subgroup{
+    position:absolute; background:#fbfbfc; border:1px dashed #e1e4e8; border-radius:10px; padding:12px;
+  }
+  .subgroup-title{
+    font-size:12px; font-weight:700; color:#6c757d; letter-spacing:.4px; text-transform:uppercase;
+    background:#fff; border:1px solid #e9ecef; display:inline-block; padding:6px 10px; border-radius:6px; margin-bottom:8px;
+  }
+
+  /* Nodes */
+  .node{
+    position:absolute; background:#fff; border-radius:10px; padding:12px 14px;
+    min-width:220px; max-width:260px; box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    border:2px solid transparent; cursor:pointer; transition: box-shadow .2s, transform .2s, border-color .2s;
+  }
+  .node:hover{ box-shadow:0 6px 20px rgba(0,0,0,.14); transform:translateY(-2px); }
+  .node.selected{ border-color:#4a90e2; box-shadow:0 8px 24px rgba(74,144,226,.28); }
+
+  .node-icon{ display:inline-block; margin-right:8px; font-size:18px; }
+  .node-title{ font-size:14px; font-weight:600; color:var(--ink); line-height:1.35; }
+  .node-type{ font-size:11px; color:#7f8c8d; margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+
+  /* Node types */
+  .type-email{ background:linear-gradient(135deg,#f5f7fa 0%, #c3cfe2 100%); }
+  .type-call{ background:linear-gradient(135deg,#ffecd2 0%, #fcb69f 100%); }
+  .type-trigger{ background:linear-gradient(135deg,#d4fc79 0%, #96e6a1 100%); }
+  .type-decision{
+    background:linear-gradient(135deg,#fa709a 0%, #fee140 100%);
+    clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%); padding:22px; text-align:center;
+  }
+  .type-terminator{ background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; }
+
+  /* Edges */
+  svg.edges{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
+  .edge-path{
+    stroke: var(--line); stroke-width:2.2; fill:none; marker-end:url(#arrowhead);
+  }
+  .edge-label{
+    position:absolute; background:#fff; padding:3px 6px; border-radius:4px; font-size:11px;
+    color:#e74c3c; font-weight:700; box-shadow:0 1px 4px rgba(0,0,0,.1); pointer-events:none;
+  }
+
+  /* Side panel */
+  #side-panel{
+    position:fixed; right:-400px; top:0; width:400px; height:100vh; background:#fff;
+    box-shadow:-4px 0 16px rgba(0,0,0,.1); transition:right .3s; overflow-y:auto; z-index:1000;
+  }
+  #side-panel.open{ right:0; }
+  .panel-header{
+    padding:18px; border-bottom:1px solid #e1e4e8; display:flex; justify-content:space-between; align-items:center;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff;
+  }
+  .panel-title{ font-size:18px; font-weight:700; }
+  .panel-close{ cursor:pointer; font-size:26px; background:none; border:none; color:#fff; line-height:1; }
+  .panel-content{ padding:18px; }
+  .panel-section{ margin-bottom:18px; }
+  .panel-section-title{ font-size:12px; font-weight:700; text-transform:uppercase; color:#6c757d; margin-bottom:6px; letter-spacing:.4px; }
+  .panel-section-content{ font-size:14px; color:var(--ink); line-height:1.55; }
+  .asset-link{ display:block; padding:8px 10px; margin:4px 0; background:#f8f9fa; border-radius:6px; color:#4a90e2; text-decoration:none; }
+  .asset-link:hover{ background:#e9ecef; }
+
+  /* Controls + Legend */
+  .controls{ position:fixed; bottom:20px; left:20px; display:flex; gap:10px; z-index:100; }
+  .control-btn{ background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:10px 16px; cursor:pointer; font-size:14px; }
+  .control-btn:hover{ background:#f8f9fa; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  .legend{
+    position:fixed; top:20px; left:20px; background:#fff; border-radius:8px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.1); z-index:100;
+  }
+  .legend-title{ font-size:14px; font-weight:700; margin-bottom:10px; color:var(--ink); }
+  .legend-item{ display:flex; align-items:center; margin:8px 0; font-size:12px; color:#6c757d; }
+  .legend-icon{ width:20px; height:20px; border-radius:4px; margin-right:8px; }
+</style>
+</head>
+<body>
+  <div id="canvas-container">
+    <!-- arrowhead defs -->
+    <svg style="position:absolute;width:0;height:0;">
+      <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          <polygon points="0 0, 10 3, 0 6" fill="#8a98a6" />
+        </marker>
+      </defs>
+    </svg>
+    <!-- edges layer -->
+    <svg class="edges" id="edges-layer"></svg>
+    <!-- nodes layer -->
+    <div id="canvas"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-title">Process Flow Legend</div>
+    <div class="legend-item">
+      <span class="legend-icon" style="background:linear-gradient(135deg,#f5f7fa 0%, #c3cfe2 100%);"></span> ✉️ Email
+    </div>
+    <div class="legend-item">
+      <span class="legend-icon" style="background:linear-gradient(135deg,#ffecd2 0%, #fcb69f 100%);"></span> 📞 CS Call
+    </div>
+    <div class="legend-item">
+      <span class="legend-icon" style="background:linear-gradient(135deg,#d4fc79 0%, #96e6a1 100%);"></span> ⚙️ Trigger
+    </div>
+    <div class="legend-item">
+      <span class="legend-icon" style="background:linear-gradient(135deg,#fa709a 0%, #fee140 100%);"></span> ◆ Decision
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="control-btn" onclick="zoomIn()">Zoom In</button>
+    <button class="control-btn" onclick="zoomOut()">Zoom Out</button>
+    <button class="control-btn" onclick="resetView()">Reset View</button>
+  </div>
+
+  <div id="side-panel">
+    <div class="panel-header">
+      <div class="panel-title">Step Details</div>
+      <button class="panel-close" onclick="closePanel()">×</button>
+    </div>
+    <div class="panel-content" id="panel-content"></div>
+  </div>
+
+<script>
+/* ---------- Data (unchanged) ---------- */
+const flowData = {
+  meta:{version:"1.0",brand:{teal:"#47b7c9",navy:"#085588",orange:"#ff7c33",lightGreen:"#cddd72"}},
+  lanes:[
+    {id:"lane_phase1", title:"Phase 1 – Onboarding", color:"#47b7c9"},
+    {id:"lane_phase2", title:"Phase 2 – Activation → Advocacy", color:"#085588"},
+    {id:"lane_subflows", title:"Sub-Flows", color:"#999999"}
+  ],
+  nodes: [
+    {id:"n0_start", lane:"lane_phase1", title:"Start: Sales → Merchant Success Handoff", type:"Terminator", HubSpotTrigger:"Deal moves to post-Closed Won onboarding stage", NextStepLogic:"Immediate → n1_live_onboarding"},
+    {id:"n1_live_onboarding", lane:"lane_phase1", title:"Merchant Status = 'Live – Onboarding'", type:"Trigger", HubSpotTrigger:"Set Deal/Company property: Merchant Status = Live – Onboarding", NextStepLogic:"Immediate → n2_day0_welcome"},
+    {id:"n2_day0_welcome", lane:"lane_phase1", title:"Day 0 — Welcome to TuaPay", type:"Email", EmailCopy:"Welcome to TuaPay! We're excited to help you offer flexible payment options to your clients. This email outlines your onboarding journey over the next 30 days.", AssetLinks:[{label:"1-min Intro Video",url:"#intro-video"},{label:"Onboarding Roadmap PDF",url:"#roadmap"},{label:"Training Booking Link",url:"#training"}], HubSpotTrigger:"Status = Live – Onboarding (automated send)", NextStepLogic:"+1 day → n3_day1_portal"},
+    {id:"n3_day1_portal", lane:"lane_phase1", title:"Day 1 — Your Portal & Pre-Qual Link Are Ready", type:"Email", EmailCopy:"Your TuaPay portal is now active! Log in to access your pre-qualification link and start offering financing to your clients immediately.", AssetLinks:[{label:"Portal Login Guide/Video",url:"#portal-guide"},{label:"Usage Cheat Sheet",url:"#cheatsheet"},{label:"QR Signage",url:"#qr-signage"},{label:"Social Templates",url:"#social"}], HubSpotTrigger:"Send if Pre-Qual Link property is populated", NextStepLogic:"+2 days → n4_day3_team_setup"},
+    {id:"n4_day3_team_setup", lane:"lane_phase1", title:"Day 3 — Add Your Team in Under 2 Minutes", type:"Email", EmailCopy:"Empower your entire team! Adding staff members to your TuaPay portal takes just minutes and ensures everyone can help clients access financing.", AssetLinks:[{label:"Role Permissions Guide",url:"#permissions"},{label:"Team Checklist",url:"#team-checklist"}], HubSpotTrigger:"Time delay from Day 1", NextStepLogic:"+4 days → n5_day7_test_invoice"},
+    {id:"n5_day7_test_invoice", lane:"lane_phase1", title:"Day 7 — Try a Test Invoice Today", type:"Email", EmailCopy:"Ready to see TuaPay in action? Create your first test invoice today and experience how easy it is to offer financing options.", AssetLinks:[{label:"Test Invoice Walkthrough Video",url:"#test-video"},{label:"Front Desk Challenge PDF",url:"#challenge"}], HubSpotTrigger:"Time delay from Day 3", NextStepLogic:"+3 days → n6_day10_promote_clients"},
+    {id:"n6_day10_promote_clients", lane:"lane_phase1", title:"Day 10 — Help Clients Say Yes with Financing", type:"Email", EmailCopy:"Start promoting TuaPay to your clients! We've prepared marketing materials to help you communicate this valuable financing option.", AssetLinks:[{label:"Canva Flyer",url:"#canva"},{label:"QR Posters",url:"#qr-posters"},{label:"Patient/Client Comms Templates",url:"#templates"}], HubSpotTrigger:"Time delay from Day 7", NextStepLogic:"+4 days → n7_day14_cs_check"},
+    {id:"n7_day14_cs_check", lane:"lane_phase1", title:"Day 14 — CS Call: First Transaction Check-In", type:"Call", EmailCopy:"N/A", AssetLinks:[{label:"Consistency Checklist",url:"#consistency"}], HubSpotTrigger:"If Usage Metrics = 0, task/call created for CS", NextStepLogic:"+7 days → n8_day21_encouragement"},
+    {id:"n8_day21_encouragement", lane:"lane_phase1", title:"Day 21 — Merchants Like You Succeed With…", type:"Email", EmailCopy:"See how other practices in your industry are using TuaPay to increase case acceptance and grow their business.", AssetLinks:[{label:"Order Marketing Materials",url:"#order-materials"}], HubSpotTrigger:"Time delay from Day 14", NextStepLogic:"+9 days → n9_day30_cs_final"},
+    {id:"n9_day30_cs_final", lane:"lane_phase1", title:"Day 30 — CS Call: Final 30-Day Check-In", type:"Call", EmailCopy:"N/A", AssetLinks:[{label:"Phase 2 Intro Talking Points",url:"#phase2-intro"}], HubSpotTrigger:"30 days since Go-Live", NextStepLogic:"Usage evaluation → n10_usage_check"},
+    {id:"n10_usage_check", lane:"lane_phase1", title:"Usage Check Decision Point", type:"Decision", EmailCopy:"N/A", HubSpotTrigger:"Evaluate usage metrics and transaction history", NextStepLogic:"Route based on usage: Active → Phase 2, Low/No → Recovery, Turnover → Re-onboarding"},
+
+    {id:"p2_1_first_loan", lane:"lane_phase2", title:"Trigger: 1st Loan", type:"Trigger", HubSpotTrigger:"First Loan Date is set", NextStepLogic:"Immediate → p2_2_live_momentum"},
+    {id:"p2_2_live_momentum", lane:"lane_phase2", title:"You're Live — Let's Build Momentum", type:"Email", EmailCopy:"Congratulations on your first TuaPay transaction! Now let's build on this momentum to maximize your success.", AssetLinks:[{label:"Momentum Checklist",url:"#momentum"},{label:"Digital Badge",url:"#badge"}], HubSpotTrigger:"First Loan achieved", NextStepLogic:"+7 days → p2_3_peer_usage"},
+    {id:"p2_3_peer_usage", lane:"lane_phase2", title:"How Other Practices Use TuaPay Every Day", type:"Email", EmailCopy:"Discover proven strategies from top-performing practices to integrate TuaPay seamlessly into your daily workflow.", AssetLinks:[{label:"Top Tips Video",url:"#tips"},{label:"Usage Tracker",url:"#tracker"}], HubSpotTrigger:"+7 days after first loan", NextStepLogic:"+23 days → p2_4_branch_usage"},
+    {id:"p2_4_branch_usage", lane:"lane_phase2", title:"Usage Status Check at ~30 days", type:"Decision", HubSpotTrigger:"Evaluate transaction volume and frequency", NextStepLogic:"Route to appropriate engagement path based on usage level"},
+    {id:"p2_champions", lane:"lane_phase2", title:"Welcome to the Tua Champion Community", type:"Email", EmailCopy:"You're a TuaPay power user! Join our exclusive Champion Community for advanced resources and referral rewards.", AssetLinks:[{label:"Referral Program",url:"#referral"},{label:"Champion Webinar",url:"#webinar"},{label:"Digital Badge",url:"#champion-badge"}], HubSpotTrigger:"High usage sustained for 60-90 days", NextStepLogic:"Evergreen engagement cadence"},
+
+    {id:"sf_low1_explore", lane:"lane_subflows", title:"Low Usage — Let's Explore TuaPay Together", type:"Email", EmailCopy:"We noticed you haven't started using TuaPay yet. Let's walk through your first transaction together!", AssetLinks:[{label:"Test Transaction Video",url:"#test-guide"},{label:"Step-by-Step Graphic",url:"#steps"},{label:"Training Portal",url:"#training-portal"}], HubSpotTrigger:"No transactions 14-30 days post Phase 1", NextStepLogic:"+5-7 days → sf_low2_connect"},
+    {id:"sf_low2_connect", lane:"lane_subflows", title:"Low Usage — Expand Your Reach", type:"Email", EmailCopy:"Let's get your clients excited about TuaPay! Here are marketing resources to boost awareness.", AssetLinks:[{label:"Order Marketing Materials",url:"#materials"},{label:"Social Templates",url:"#social-templates"},{label:"Canva Flyer",url:"#flyer"}], HubSpotTrigger:"Follow-up in Low/No Usage path", NextStepLogic:"+5-7 days → sf_low3_coach"},
+    {id:"sf_low3_coach", lane:"lane_subflows", title:"Low Usage — Free Growth Coach Session", type:"Email", EmailCopy:"Let's unlock TuaPay's potential for your practice. Book a free 1-on-1 growth coaching session.", AssetLinks:[{label:"Growth Coach Booking",url:"#coach-booking"},{label:"Call Agenda PDF",url:"#agenda"}], HubSpotTrigger:"Low/No Usage step 3", NextStepLogic:"Exit when usage becomes active"},
+
+    {id:"sf_turn1_newstaff", lane:"lane_subflows", title:"New Staff — Welcome to TuaPay", type:"Email", EmailCopy:"Welcome to TuaPay! As a new team member, we'll help you get up to speed quickly.", AssetLinks:[{label:"1-min Intro Video",url:"#intro"},{label:"Training Booking Link",url:"#book-training"},{label:"Quick Start PDF",url:"#quickstart"}], HubSpotTrigger:"Staff change identified", NextStepLogic:"+3-4 days → sf_turn2_portal"},
+    {id:"sf_turn2_portal", lane:"lane_subflows", title:"New Staff — Portal Access", type:"Email", EmailCopy:"Your TuaPay portal credentials are ready. Let's get you logged in and familiar with the system.", AssetLinks:[{label:"Login Guide",url:"#login"},{label:"QR Signage",url:"#qr"},{label:"Permissions Checklist",url:"#permissions-check"}], HubSpotTrigger:"Employee Turnover step 2", NextStepLogic:"+5 days → sf_turn3_test"},
+    {id:"sf_turn3_test", lane:"lane_subflows", title:"New Staff — Try Your First Invoice", type:"Email", EmailCopy:"Ready to process your first TuaPay transaction? Follow our simple guide to get started.", AssetLinks:[{label:"Walkthrough Video",url:"#walkthrough"},{label:"Test Invoice Guide",url:"#invoice-guide"}], HubSpotTrigger:"Employee Turnover step 3", NextStepLogic:"Exit when usage active"}
+  ],
+  edges:[
+    ["n0_start","n1_live_onboarding","Immediate"],
+    ["n1_live_onboarding","n2_day0_welcome","Immediate"],
+    ["n2_day0_welcome","n3_day1_portal","+1 day"],
+    ["n3_day1_portal","n4_day3_team_setup","+2 days"],
+    ["n4_day3_team_setup","n5_day7_test_invoice","+4 days"],
+    ["n5_day7_test_invoice","n6_day10_promote_clients","+3 days"],
+    ["n6_day10_promote_clients","n7_day14_cs_check","+4 days"],
+    ["n7_day14_cs_check","n8_day21_encouragement","+7 days"],
+    ["n8_day21_encouragement","n9_day30_cs_final","+9 days"],
+    ["n9_day30_cs_final","n10_usage_check","Evaluate"],
+    ["n10_usage_check","p2_1_first_loan","Active Usage"],
+    ["n10_usage_check","sf_low1_explore","Low/No Usage"],
+    ["n10_usage_check","sf_turn1_newstaff","Staff Turnover"],
+    ["p2_1_first_loan","p2_2_live_momentum","Immediate"],
+    ["p2_2_live_momentum","p2_3_peer_usage","+7 days"],
+    ["p2_3_peer_usage","p2_4_branch_usage","+23 days"],
+    ["p2_4_branch_usage","p2_champions","High Usage"],
+    ["sf_low1_explore","sf_low2_connect","+5-7 days"],
+    ["sf_low2_connect","sf_low3_coach","+5-7 days"],
+    ["sf_turn1_newstaff","sf_turn2_portal","+3-4 days"],
+    ["sf_turn2_portal","sf_turn3_test","+5 days"]
+  ]
+};
+
+/* ---------- Globals ---------- */
+const canvas = document.getElementById('canvas');
+const edgesLayer = document.getElementById('edges-layer');
+const container = document.getElementById('canvas-container');
+let scale = 1, tx = 0, ty = 0, dragging = false, sx=0, sy=0;
+const nodeEls = {};
+let selectedNode = null;
+
+/* ---------- Icons ---------- */
+const iconMap = { Email:"✉️", Call:"📞", Trigger:"⚙️", Decision:"◆", Terminator:"🎯" };
+
+/* ---------- Init ---------- */
+window.addEventListener('load', init);
+function init(){
+  createSwimlanes();
+  createSubGroups();
+  placeNodesHorizontal();
+  drawAllEdges(); // straight orthogonal
+  centerView();
+}
+
+/* ---------- Swimlanes (horizontal flow) ---------- */
+function createSwimlanes(){
+  // Layout
+  const lanes = {
+    lane_phase1: { x:200, y:100,  w:3200, h:520, color:flowData.lanes[0].color, title:flowData.lanes[0].title },
+    lane_phase2: { x:200, y:700,  w:3200, h:520, color:flowData.lanes[1].color, title:flowData.lanes[1].title },
+    lane_subflows:{ x:3600,y:100,  w:1200, h:1120, color:flowData.lanes[2].color, title:flowData.lanes[2].title }
+  };
+  for(const id in lanes){
+    const L = lanes[id];
+    const el = document.createElement('div');
+    el.className='swimlane';
+    el.style.left = L.x+'px'; el.style.top=L.y+'px'; el.style.width=L.w+'px'; el.style.height=L.h+'px';
+    const header = document.createElement('div');
+    header.className='swimlane-header'; header.style.backgroundColor=L.color; header.textContent=L.title;
+    el.appendChild(header);
+    // save for lookup
+    el.dataset.laneId = id;
+    canvas.appendChild(el);
+  }
+}
+
+/* ---------- Subgroups (clean Low/No Usage vs Staff Turnover) ---------- */
+function createSubGroups(){
+  const subLane = [...canvas.querySelectorAll('.swimlane')]
+    .find(el=>el.dataset.laneId==='lane_subflows');
+
+  const low = document.createElement('div');
+  low.className='subgroup';
+  low.style.left='24px'; low.style.top='60px'; low.style.width='540px'; low.style.height='1000px';
+  low.innerHTML=`<div class="subgroup-title">Low/No Usage Recovery</div>`;
+  subLane.appendChild(low);
+
+  const turn = document.createElement('div');
+  turn.className='subgroup';
+  turn.style.left='620px'; turn.style.top='60px'; turn.style.width='540px'; turn.style.height='1000px';
+  turn.innerHTML=`<div class="subgroup-title">New Staff Re‑Onboarding</div>`;
+  subLane.appendChild(turn);
+}
+
+/* ---------- Node placement (horizontal) ---------- */
+function placeNodesHorizontal(){
+  const positions = {};
+  const laneBuckets = { lane_phase1:[], lane_phase2:[], lane_subflows:[] };
+
+  // keep given order
+  for(const node of flowData.nodes){ laneBuckets[node.lane].push(node.id); }
+
+  // Phase 1 — left→right
+  let x = 240, y = 160;
+  laneBuckets.lane_phase1.forEach((id, idx)=>{
+    positions[id] = { x, y };
+    x += 300; // spacing
+    if (id==='n10_usage_check'){ /* keep end visible */ }
+  });
+
+  // Phase 2 — left→right (aligned lower lane)
+  x = 240; y = 760;
+  laneBuckets.lane_phase2.forEach(id=>{
+    positions[id] = { x, y };
+    x += 300;
+  });
+
+  // Sub-flows — column stacks inside subgroups
+  const baseXLow = 3650 + 24 + 20;  // lane x + subgroup padding
+  const baseXTurn= 3650 + 620 + 20;
+  let yLow  = 120;
+  let yTurn = 120;
+
+  laneBuckets.lane_subflows.forEach(id=>{
+    const isLow = id.includes('low');
+    const px = isLow ? baseXLow : baseXTurn;
+    const py = isLow ? yLow : yTurn;
+    positions[id] = { x: px, y: py };
+    if (isLow) yLow += 180; else yTurn += 180;
+  });
+
+  // Render nodes
+  for(const node of flowData.nodes){
+    const pos = positions[node.id];
+    const el = document.createElement('div');
+    el.className = `node type-${node.type.toLowerCase()}`;
+    el.id = node.id;
+    el.style.left = pos.x+'px'; el.style.top = pos.y+'px';
+
+    const icon = document.createElement('span'); icon.className='node-icon'; icon.textContent = iconMap[node.type] || '📋';
+    const title = document.createElement('div'); title.className='node-title'; title.textContent = node.title;
+    const type  = document.createElement('div'); type.className='node-type'; type.textContent = node.type;
+
+    el.appendChild(icon); el.appendChild(title); el.appendChild(type);
+    el.addEventListener('click', ()=>openPanel(node));
+    canvas.appendChild(el);
+    nodeEls[node.id] = el;
+  }
+}
+
+/* ---------- Edges (orthogonal, straight segments) ---------- */
+function drawAllEdges(){
+  edgesLayer.innerHTML = ''; // clear
+  const labelContainer = document.createDocumentFragment();
+
+  flowData.edges.forEach(([fromId, toId, label])=>{
+    const from = nodeEls[fromId], to = nodeEls[toId];
+    if(!from || !to) return;
+
+    const fromBox = getBox(from);
+    const toBox   = getBox(to);
+
+    const {sx, sy, tx, ty, orientation} = chooseAnchors(fromBox, toBox);
+
+    // Path: straight if aligned; else elbow with horizontal-then-vertical
+    let d = '';
+    if (orientation==='horizontal' && Math.abs(sy-ty)<6){
+      d = `M ${sx} ${sy} L ${tx} ${ty}`;
+    } else if (orientation==='vertical' && Math.abs(sx-tx)<6){
+      d = `M ${sx} ${sy} L ${tx} ${ty}`;
+    } else {
+      const midX = (sx + tx) / 2;
+      d = `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${ty} L ${tx} ${ty}`;
+    }
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('class','edge-path');
+    edgesLayer.appendChild(path);
+
+    if(label && label!=='Immediate'){
+      const mid = pointOnPolylineMid(sx,sy,tx,ty);
+      const tag = document.createElement('div');
+      tag.className='edge-label';
+      tag.textContent = label;
+      tag.style.left = (mid.x - 28)+'px';
+      tag.style.top  = (mid.y - 10)+'px';
+      labelContainer.appendChild(tag);
+    }
+  });
+
+  // place labels above nodes layer (in canvas)
+  canvas.appendChild(labelContainer);
+}
+
+function getBox(el){
+  return {
+    x: parseFloat(el.style.left), y: parseFloat(el.style.top),
+    w: el.offsetWidth, h: el.offsetHeight,
+    cx(){ return this.x + this.w/2; }, cy(){ return this.y + this.h/2; }
+  };
+}
+function chooseAnchors(a, b){
+  const dx = (b.cx() - a.cx());
+  const dy = (b.cy() - a.cy());
+  if (Math.abs(dx) >= Math.abs(dy)){
+    // Horizontal relationship → use right/left anchors
+    const sx = dx >= 0 ? a.x + a.w : a.x;        // right or left
+    const tx = dx >= 0 ? b.x : b.x + b.w;        // left or right
+    return { sx, sy: a.cy(), tx, ty: b.cy(), orientation:'horizontal' };
+  } else {
+    // Vertical relationship → bottom/top anchors
+    const sy = dy >= 0 ? a.y + a.h : a.y;
+    const ty = dy >= 0 ? b.y : b.y + b.h;
+    return { sx: a.cx(), sy, tx: b.cx(), ty, orientation:'vertical' };
+  }
+}
+// label helper for elbow
+function pointOnPolylineMid(sx,sy,tx,ty){
+  const mx = (sx+tx)/2;
+  if (Math.abs(sy-ty) < 6) return {x:mx, y:sy};
+  // midpoint of the vertical segment
+  return { x: mx, y: (sy+ty)/2 };
+}
+
+/* ---------- Panel ---------- */
+function openPanel(node){
+  const panel = document.getElementById('side-panel');
+  const content = document.getElementById('panel-content');
+  if (selectedNode) selectedNode.classList.remove('selected');
+  selectedNode = nodeEls[node.id];
+  selectedNode.classList.add('selected');
+
+  let html = `
+    <div class="panel-section"><div class="panel-section-title">Step Title</div>
+      <div class="panel-section-content">${node.title}</div></div>
+    <div class="panel-section"><div class="panel-section-title">Step Type</div>
+      <div class="panel-section-content">${(iconMap[node.type]||'')} ${node.type}</div></div>
+  `;
+  if (node.EmailCopy && node.EmailCopy!=='N/A'){
+    html += `<div class="panel-section"><div class="panel-section-title">Email Copy</div>
+      <div class="panel-section-content">${node.EmailCopy}</div></div>`;
+  }
+  if (node.AssetLinks && node.AssetLinks.length){
+    html += `<div class="panel-section"><div class="panel-section-title">Asset Links</div><div class="panel-section-content">`;
+    node.AssetLinks.forEach(l=> html += `<a class="asset-link" href="${l.url}">${l.label}</a>`);
+    html += `</div></div>`;
+  }
+  if (node.HubSpotTrigger){
+    html += `<div class="panel-section"><div class="panel-section-title">HubSpot Trigger</div>
+      <div class="panel-section-content">${node.HubSpotTrigger}</div></div>`;
+  }
+  if (node.NextStepLogic){
+    html += `<div class="panel-section"><div class="panel-section-title">Next Step Logic</div>
+      <div class="panel-section-content">${node.NextStepLogic}</div></div>`;
+  }
+  content.innerHTML = html;
+  panel.classList.add('open');
+}
+function closePanel(){
+  document.getElementById('side-panel').classList.remove('open');
+  if (selectedNode){ selectedNode.classList.remove('selected'); selectedNode = null; }
+}
+
+/* ---------- Pan & Zoom ---------- */
+container.addEventListener('mousedown', e=>{
+  if (e.target===container || e.target===canvas){ dragging=true; sx=e.clientX - tx; sy=e.clientY - ty; container.classList.add('grabbing'); }
+});
+document.addEventListener('mousemove', e=>{
+  if (!dragging) return;
+  tx = e.clientX - sx; ty = e.clientY - sy; applyTransform();
+});
+document.addEventListener('mouseup', ()=>{ dragging=false; container.classList.remove('grabbing'); });
+
+container.addEventListener('wheel', e=>{
+  if (e.ctrlKey || e.metaKey){
+    e.preventDefault();
+    const k = e.deltaY>0 ? 0.9 : 1.1;
+    scale = Math.min(3, Math.max(0.35, scale*k));
+    applyTransform();
+  }
+});
+function applyTransform(){
+  canvas.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  edgesLayer.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`; // keep edges aligned
+}
+function zoomIn(){ scale=Math.min(3, scale*1.2); applyTransform(); }
+function zoomOut(){ scale=Math.max(0.35, scale*0.8); applyTransform(); }
+function resetView(){ scale=1; centerView(); }
+
+function centerView(){
+  // put Phase 1 start in view
+  tx = -120; ty = -40; applyTransform();
+}
+
+/* ---------- Shortcuts ---------- */
+document.addEventListener('keydown', e=>{
+  if (e.key==='Escape') closePanel();
+  if (e.ctrlKey || e.metaKey){
+    if (e.key==='='){ e.preventDefault(); zoomIn(); }
+    if (e.key==='-'){ e.preventDefault(); zoomOut(); }
+    if (e.key==='0'){ e.preventDefault(); resetView(); }
+  }
+});
+</script>
+</body>
+</html>
