@@ -3,97 +3,319 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TuaPay Interactive Flow</title>
+<title>TuaPay Onboarding Flow (Interactive)</title>
 <style>
   :root{
-    --bg:#ffffff;
-    --grid:#eff3f8;
-    --text:#1f2d3d;
-    --muted:#5a6b7b;
+    /* Brand */
+    --teal:#47b7c9;
+    --navy:#085588;
+    --orange:#ff7c33;
+    --lime:#cddd72;
 
-    /* universal node colors */
-    --call-fill:#cddd72;         /* lime */
-    --call-border:#a5c15c;
-    --decision-fill:#ff7c33;     /* orange */
-    --decision-border:#e86d27;
+    /* Neutrals */
+    --bg:#ffffff; --ink:#0f1b2d; --muted:#5b6b7b; --grid:#e7eef7;
 
-    --shadow:0 6px 18px rgba(20,40,80,0.12);
-    --radius:10px;
+    /* Sizing */
+    --lane-h:120px; --node-w:120px; --node-h:54px; --radius:8px;
+
+    --shadow:0 8px 24px rgba(20,40,80,.12);
   }
-  html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.35 Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial}
-  .wrap{display:flex;flex-direction:column;gap:18px;padding:22px}
-  header{display:flex;align-items:center;justify-content:space-between}
-  h1{font-size:22px;margin:0;color:#085588}
-  .legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:12px}
-  .legend .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#fff;border-radius:999px;box-shadow:var(--shadow);border:1px solid #e7eef7}
-  .chip .sw{width:14px;height:14px;border-radius:3px}
-  .chip.email .sw{background:linear-gradient(180deg,#fff,#f7fdff);border:1px solid #ccc}
-  .chip.call .sw{background:var(--call-fill);border:1px solid var(--call-border)}
-  .chip.decision .sw{background:var(--decision-fill);border:1px solid var(--decision-border);transform:rotate(45deg);border-radius:2px}
+  html,body{margin:0;background:#fff;color:var(--ink);font:14px/1.35 Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{padding:22px;display:flex;flex-direction:column;gap:14px}
+  h1{margin:0 0 2px;font:600 22px/1.2 Inter;color:var(--navy)}
+  .hint{color:#6a7886;font-size:12px}
 
-  .controls{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px}
-  .controls a{font-size:12px;color:#085588;text-decoration:none;background:#eef5ff;border:1px solid #d6e5ff;padding:6px 10px;border-radius:999px}
-  .hint{color:#6a7b8c;font-size:12px}
-
-  .board{position:relative;overflow:auto;border-radius:12px;background:#fff;border:1px solid #dfe7f1;box-shadow:var(--shadow)}
-  .lane-title{font-weight:700;fill:#085588}
+  .canvas{border:1px solid #dfe7f1;border-radius:12px;box-shadow:var(--shadow);overflow:auto;background:#fff}
+  svg{display:block}
 
   /* Modal */
-  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(9,16,28,0.45);z-index:9999}
+  .modal{position:fixed;inset:0;background:rgba(5,12,24,.5);display:none;align-items:center;justify-content:center;z-index:99}
   .modal.show{display:flex}
-  .card{width:min(860px,92vw);max-height:86vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);padding:22px 24px;border:2px solid #eaf1fb}
-  .card h2{margin:0 0 8px;font-size:20px}
-  .meta{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0 14px;color:#4b5b6a;font-size:12px}
-  .meta .pill{background:#f2f7ff;color:#085588;border:1px solid #dbe6ff;padding:6px 10px;border-radius:999px}
-  .kv{display:grid;grid-template-columns:160px 1fr;gap:8px 16px;margin-top:8px}
-  .kv .k{color:#74879a;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
-  .kv .v{color:#263445}
-  .assets{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-  .assets a{text-decoration:none;color:#085588;background:#edf3ff;border:1px solid #d6e3ff;padding:6px 10px;border-radius:8px}
-  .close{position:sticky;top:0;float:right;transform:translateY(-6px);background:#085588;color:#fff;border:none;padding:8px 12px;border-radius:999px;cursor:pointer}
-  .note{margin-top:10px;color:#445468;background:#f9fbff;border:1px dashed #d2def2;padding:10px 12px;border-radius:8px}
-
-  .node-title{font-weight:600;font-size:12px}
-  .node-sub{fill:#5a6b7b;font-size:11px}
+  .card{width:min(860px,92vw);max-height:86vh;overflow:auto;background:#fff;border:2px solid #e9f1fc;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.25);padding:22px 24px}
+  .card h2{margin:0 0 6px;font:700 20px/1.25 Inter;color:#0d2033}
+  .meta{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+  .pill{background:#f1f6ff;border:1px solid #d7e5ff;color:#0b3b87;border-radius:999px;padding:6px 10px;font-size:12px}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:8px 16px}
+  .kv .k{color:#75879a;text-transform:uppercase;letter-spacing:.04em;font-size:11px}
+  .kv .v{color:#223244}
+  .assets{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .assets a{background:#eef5ff;border:1px solid #d6e5ff;color:#0b3b87;text-decoration:none;border-radius:8px;padding:6px 10px}
+  .note{margin-top:10px;background:#fbfcff;border:1px dashed #d7e2f5;border-radius:8px;padding:10px 12px;color:#435367}
+  .close{position:sticky;top:0;float:right;background:var(--navy);color:#fff;border:none;border-radius:999px;padding:8px 12px;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>TuaPay Onboarding & Advocacy Flow</h1>
-    <div class="legend">
-      <span class="chip email"><span class="sw"></span>Email</span>
-      <span class="chip call"><span class="sw"></span>MS Call</span>
-      <span class="chip decision"><span class="sw"></span>Decision / Branch</span>
-    </div>
-  </header>
-  <div class="controls">
-    <a href="#phase1">Phase 1 – New Merchant</a>
-    <a href="#phase2">Phase 2 – Advocacy</a>
-    <a href="#high">High Usage</a>
-    <a href="#low">Low Usage</a>
-    <a href="#newstaff">New Staff</a>
-  </div>
-  <div class="hint">Wide scroll enabled — click any box for details (links are placeholders for now).</div>
+  <h1>TuaPay Onboarding Flow (Interactive)</h1>
+  <div class="hint">Click any EMAIL box to view details. Colors use your palette: teal, navy, orange (decisions), and lime (MS calls).</div>
 
-  <div class="board">
-    <svg id="flow" width="3600" height="920" viewBox="0 0 3600 920" xmlns="http://www.w3.org/2000/svg" aria-label="TuaPay Interactive Flowchart">
+  <div class="canvas">
+    <!--
+      Fixed-layout SVG to closely match your diagram.
+      All positions are hand-tuned to mirror the screenshot’s geometry.
+    -->
+    <svg id="flow" width="2100" height="1100" viewBox="0 0 2100 1100" xmlns="http://www.w3.org/2000/svg">
+
       <defs>
-        <marker id="arrow" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto" markerUnits="strokeWidth">
-          <path d="M0,0 L12,4 L0,8 Z" fill="#98a9bc"></path>
+        <!-- Arrowheads -->
+        <marker id="arr" markerWidth="12" markerHeight="8" refX="10" refY="4" orient="auto">
+          <path d="M0,0 L12,4 L0,8 Z" fill="#51677e"/>
         </marker>
+        <marker id="arrThin" markerWidth="10" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L10,3 L0,6 Z" fill="#51677e"/>
+        </marker>
+        <!-- Reusable filters -->
+        <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.12)"/>
+        </filter>
+        <!-- Dash pattern -->
+        <pattern id="dash" patternUnits="userSpaceOnUse" width="6" height="6">
+          <path d="M0 3 L6 3" stroke="#7fa8bb" stroke-width="2"/>
+        </pattern>
       </defs>
-      <g id="lanes"></g>
-      <g id="connectors" stroke="#98a9bc" stroke-width="2" fill="none" marker-end="url(#arrow)"></g>
-      <g id="nodes"></g>
+
+      <!-- ===== PHASE 1 ===== -->
+      <g id="phase1">
+        <!-- Title -->
+        <text x="30" y="90" font-family="Inter" font-size="46" font-weight="800" fill="var(--navy)">PHASE 1</text>
+
+        <!-- Top caption -->
+        <text x="560" y="115" font-family="Inter" font-size="14" fill="#213142" text-anchor="middle">
+          MERCHANTS RECEIVE THIS EMAIL AND CALL SEQUENCE WHEN THEY ENROLL
+        </text>
+
+        <!-- Bracket spanning Emails 1..6 -->
+        <path d="M 210 130 q 0 22 22 22 l 900 0 q 22 0 22 -22"
+          fill="none" stroke="#75879a" stroke-width="2"/>
+
+        <!-- Left labels -->
+        <g font-family="Inter" font-size="12" fill="#1b2a3a" >
+          <text x="60" y="155">MERCHANT</text>
+          <text x="60" y="170">ENROLLS AND IS</text>
+          <text x="60" y="185">HANDED</text>
+          <text x="60" y="200">OVER TO HEIDI</text>
+        </g>
+        <line x1="168" y1="175" x2="240" y2="175" stroke="#51677e" stroke-width="2" marker-end="url(#arr)"/>
+
+        <g font-family="Inter" font-size="12" fill="#1b2a3a">
+          <text x="60" y="240" fill="var(--teal)">STAFF</text>
+          <text x="60" y="255" fill="var(--teal)">TURNOVER AT</text>
+          <text x="60" y="270" fill="var(--teal)">MERCHANT</text>
+        </g>
+        <line x1="165" y1="258" x2="270" y2="258" stroke="#67c8d7" stroke-width="2" marker-end="url(#arrThin)"/>
+
+        <!-- Phase 1 EMAIL row -->
+        <!-- EMAIL 1 -->
+        <g class="email" data-id="p1_e1" transform="translate(240,150)" cursor="pointer">
+          <rect x="0" y="0" width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 1</text>
+        </g>
+
+        <!-- EMAIL 2 -->
+        <g class="email" data-id="p1_e2" transform="translate(390,150)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 2</text>
+        </g>
+
+        <!-- EMAIL 3 -->
+        <g class="email" data-id="p1_e3" transform="translate(540,150)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 3</text>
+        </g>
+
+        <!-- MS call diamond -->
+        <g transform="translate(700,150)">
+          <rect x="0" y="0" width="54" height="54" transform="rotate(45 27 27)" fill="var(--lime)" stroke="#93b44c" stroke-width="2"/>
+          <text x="27" y="32" font-family="Inter" font-size="12" text-anchor="middle" fill="#0b1a27">MS</text>
+          <text x="27" y="46" font-family="Inter" font-size="12" text-anchor="middle" fill="#0b1a27">call</text>
+        </g>
+
+        <!-- EMAIL 4 -->
+        <g class="email" data-id="p1_e4" transform="translate(780,150)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 4</text>
+        </g>
+
+        <!-- EMAIL 5 -->
+        <g class="email" data-id="p1_e5" transform="translate(930,150)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 5</text>
+        </g>
+
+        <!-- EMAIL 6 -->
+        <g class="email" data-id="p1_e6" transform="translate(1080,150)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 6</text>
+        </g>
+
+        <!-- MS call diamond 2 -->
+        <g transform="translate(1235,150)">
+          <rect x="0" y="0" width="54" height="54" transform="rotate(45 27 27)" fill="var(--lime)" stroke="#93b44c" stroke-width="2"/>
+          <text x="27" y="32" font-family="Inter" font-size="12" text-anchor="middle" fill="#0b1a27">MS</text>
+          <text x="27" y="46" font-family="Inter" font-size="12" text-anchor="middle" fill="#0b1a27">call</text>
+        </g>
+
+        <!-- No usage arrow + Hand back to Sales -->
+        <g transform="translate(1330,158)">
+          <rect x="0" y="10" width="150" height="38" rx="6" ry="6" fill="var(--navy)"/>
+          <polygon points="150,29 170,19 170,49" fill="var(--navy)"/>
+          <text x="75" y="34" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">No usage</text>
+        </g>
+        <g transform="translate(1525,120)">
+          <text x="100" y="65" font-family="Inter" font-size="12" fill="#1b2a3a">HAND BACK TO SALES</text>
+          <!-- no symbol -->
+          <circle cx="34" cy="58" r="26" fill="none" stroke="var(--orange)" stroke-width="8"/>
+          <line x1="18" y1="74" x2="50" y2="42" stroke="#f59763" stroke-width="6"/>
+        </g>
+
+        <g transform="translate(240,225)">
+          <!-- new staff welcome box (brand teal instead of yellow) -->
+          <rect width="150" height="80" rx="6" ry="6" fill="#e8f9fd" stroke="var(--teal)"/>
+          <text x="75" y="32" font-family="Inter" font-size="12" fill="#0b1a27" text-anchor="middle">NEW STAFF</text>
+          <text x="75" y="48" font-family="Inter" font-size="12" fill="#0b1a27" text-anchor="middle">WELCOME</text>
+          <text x="75" y="64" font-family="Inter" font-size="12" fill="#0b1a27" text-anchor="middle">EMAIL 1</text>
+          <!-- dashed curves to Email 2 and MS call -->
+          <path d="M 150 40 C 210 10, 260 -36, 330 -46" stroke="#7fa8bb" stroke-dasharray="5 5" fill="none" marker-end="url(#arrThin)"/>
+          <path d="M 150 50 C 230 30, 430 -10, 520 -30" stroke="#7fa8bb" stroke-dasharray="5 5" fill="none" marker-end="url(#arrThin)"/>
+        </g>
+
+        <!-- Grey rule: IF AT ANY POINT... -->
+        <g transform="translate(150,330)">
+          <rect width="1500" height="36" rx="6" ry="6" fill="#e6ebf1" stroke="#cfd9e6"/>
+          <text x="750" y="24" text-anchor="middle" font-family="Inter" font-size="13" fill="#2b3a49">
+            IF AT ANY POINT THE MERCHANT PROCESSES A TRANSACTION DURING THE ABOVE PROCESS, THEY DROP INTO PHASE 2 EMAIL SEQUENCE
+          </text>
+        </g>
+        <!-- vertical blue tick at left like screenshot -->
+        <rect x="130" y="322" width="6" height="52" fill="#6f9bc2"/>
+      </g>
+
+      <!-- ===== PHASE 2 ===== -->
+      <g id="phase2">
+        <text x="30" y="435" font-family="Inter" font-size="46" font-weight="800" fill="var(--navy)">PHASE 2</text>
+
+        <g font-family="Inter" font-size="12" fill="#1b2a3a">
+          <text x="60" y="470">FIRST</text>
+          <text x="60" y="485">TRANSACTION</text>
+          <text x="60" y="500">PROCESSED</text>
+        </g>
+        <line x1="168" y1="487" x2="240" y2="487" stroke="#51677e" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Phase 2 chain -->
+        <g class="email" data-id="p2_e1" transform="translate(240,462)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 1</text>
+        </g>
+        <g class="email" data-id="p2_e2" transform="translate(390,462)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 2</text>
+        </g>
+        <g transform="translate(540,462)">
+          <rect x="0" y="0" width="54" height="54" transform="rotate(45 27 27)" fill="var(--lime)" stroke="#93b44c" stroke-width="2"/>
+          <text x="27" y="32" font-family="Inter" font-size="12" text-anchor="middle" fill="#0b1a27">MS</text>
+          <text x="27" y="46" font-family="Inter" font-size="12" text-anchor="middle" fill="#0b1a27">call</text>
+        </g>
+        <g class="email" data-id="p2_e3" transform="translate(620,462)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 3</text>
+        </g>
+        <g class="email" data-id="p2_e4" transform="translate(770,462)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 4</text>
+        </g>
+        <g class="email" data-id="p2_e5" transform="translate(920,462)" cursor="pointer">
+          <rect width="120" height="54" rx="8" ry="8" fill="var(--navy)" filter="url(#soft)"/>
+          <text x="60" y="32" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">EMAIL 5</text>
+        </g>
+
+        <!-- Number of transactions box (green in original; use lime brand) -->
+        <g transform="translate(1080,452)">
+          <rect width="170" height="74" rx="6" ry="6" fill="#eaf6cf" stroke="#93b44c"/>
+          <text x="85" y="32" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">NUMBER OF</text>
+          <text x="85" y="48" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">TRANSACTIONS</text>
+          <text x="85" y="64" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">IS (X).</text>
+        </g>
+
+        <!-- Branch up to High Usage -->
+        <path d="M 1250 489 L 1250 410 L 1410 410" fill="none" stroke="#6e8aa3" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Branch down to Low Usage -->
+        <path d="M 1250 489 L 1250 655 L 1410 655" fill="none" stroke="#6e8aa3" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- High usage row -->
+        <text x="1420" y="440" font-family="Inter" font-size="22" fill="#238">High usage merchant</text>
+
+        <!-- dashed monthly touch emails -->
+        <g transform="translate(1410,370)">
+          <rect width="80" height="46" rx="6" ry="6" fill="none" stroke="var(--teal)" stroke-width="2" stroke-dasharray="6 5"/>
+          <text x="40" y="28" font-family="Inter" font-size="10" fill="#1b2a3a" text-anchor="middle">Monthly</text>
+          <text x="40" y="40" font-family="Inter" font-size="10" fill="#1b2a3a" text-anchor="middle">Touch</text>
+        </g>
+        <g transform="translate(1505,370)">
+          <rect width="80" height="46" rx="6" ry="6" fill="none" stroke="var(--teal)" stroke-width="2" stroke-dasharray="6 5"/>
+          <text x="40" y="28" font-family="Inter" font-size="10" fill="#1b2a3a" text-anchor="middle">Monthly</text>
+          <text x="40" y="40" font-family="Inter" font-size="10" fill="#1b2a3a" text-anchor="middle">Touch</text>
+        </g>
+        <g transform="translate(1600,370)">
+          <rect width="80" height="46" rx="6" ry="6" fill="none" stroke="var(--teal)" stroke-width="2" stroke-dasharray="6 5"/>
+          <text x="40" y="28" font-family="Inter" font-size="10" fill="#1b2a3a" text-anchor="middle">Monthly</text>
+          <text x="40" y="40" font-family="Inter" font-size="10" fill="#1b2a3a" text-anchor="middle">Touch</text>
+        </g>
+
+        <!-- Monthly Touch Base pill -->
+        <g class="email" data-id="hi_touch" transform="translate(1700,370)" cursor="pointer">
+          <rect width="180" height="46" rx="23" ry="23" fill="var(--teal)" filter="url(#soft)"/>
+          <text x="90" y="29" font-family="Inter" font-size="14" fill="#fff" text-anchor="middle">Monthly Touch Base</text>
+        </g>
+
+        <!-- Star + note -->
+        <g transform="translate(1890,330)">
+          <polygon points="50,0 61,34 97,34 68,54 78,88 50,69 22,88 32,54 3,34 39,34"
+                   fill="none" stroke="var(--orange)" stroke-width="4"/>
+          <text x="120" y="48" font-family="Inter" font-size="12" fill="#1b2a3a">Star</text>
+          <text x="120" y="63" font-family="Inter" font-size="12" fill="#1b2a3a">Merchant</text>
+          <text x="120" y="78" font-family="Inter" font-size="12" fill="#1b2a3a">Status</text>
+          <text x="120" y="93" font-family="Inter" font-size="12" fill="#1b2a3a">*Incentives*</text>
+        </g>
+
+        <!-- Low usage row -->
+        <text x="1420" y="700" font-family="Inter" font-size="22" fill="#238">Low Usage Merchant</text>
+
+        <g class="email" data-id="lo_e1" transform="translate(1410,630)" cursor="pointer">
+          <rect width="90" height="46" rx="6" ry="6" fill="none" stroke="var(--navy)" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="45" y="28" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">Email 1</text>
+        </g>
+        <g class="email" data-id="lo_e2" transform="translate(1510,630)" cursor="pointer">
+          <rect width="90" height="46" rx="6" ry="6" fill="none" stroke="var(--navy)" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="45" y="28" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">Email 2</text>
+        </g>
+        <!-- small diamond between 2 and 3 -->
+        <g transform="translate(1610,630)">
+          <rect x="0" y="0" width="40" height="40" transform="rotate(45 20 20)" fill="var(--lime)" stroke="#93b44c"/>
+        </g>
+        <g class="email" data-id="lo_e3" transform="translate(1660,630)" cursor="pointer">
+          <rect width="90" height="46" rx="6" ry="6" fill="none" stroke="var(--navy)" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="45" y="28" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">Email 3</text>
+        </g>
+        <g class="email" data-id="lo_e4" transform="translate(1760,630)" cursor="pointer">
+          <rect width="90" height="46" rx="6" ry="6" fill="none" stroke="var(--navy)" stroke-width="2" stroke-dasharray="6 6"/>
+          <text x="45" y="28" font-family="Inter" font-size="12" fill="#1b2a3a" text-anchor="middle">Email 4</text>
+        </g>
+
+        <!-- "No usage?" soft arrow -->
+        <g transform="translate(1865,638)">
+          <polygon points="0,0 120,0 140,10 140,36 120,46 0,46" fill="#eef2f6" stroke="#c8d3e0"/>
+          <text x="70" y="28" font-family="Inter" font-size="14" fill="#2a3a4a" text-anchor="middle">No Usage?</text>
+        </g>
+      </g>
     </svg>
   </div>
 </div>
 
-<!-- Modal -->
-<div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="card" role="document">
-    <button class="close" id="closeBtn" aria-label="Close">Close ✕</button>
+<!-- ===== Modal ===== -->
+<div class="modal" id="modal">
+  <div class="card">
+    <button class="close" id="closeBtn">Close ✕</button>
     <h2 id="m_title">Title</h2>
     <div class="meta" id="m_meta"></div>
     <div class="kv">
@@ -107,330 +329,65 @@
 </div>
 
 <script>
-/* ======= PER-LANE EMAIL ACCENT COLORS ======= */
-const emailAccents = {
-  "phase1":"#47b7c9",  // teal
-  "phase2":"#085588",  // navy
-  "high":"#cb6ce6",    // purple
-  "low":"#ffde59",     // yellow
-  "newstaff":"#38b6ff" // blue
+/* ------------- Data: Email details (trimmed) ------------- */
+const EMAILS={
+  // Phase 1
+  p1_e1:{name:"Welcome to TuaPay",day:"Day 0",trigger:"Deal moved to “Live – Onboarding”.",audience:"Merchant primary contact",summary:"Welcome, benefits, portal login, intro to Merchant Success, 30-day plan.",assets:["Portal login","Quick Start Guide","Heidi’s contact"],hubspot:"#",notes:"CS: Call if unopened after 2 days."},
+  p1_e2:{name:"Your Portal & Pre-Qual Link",day:"+3 days",trigger:"Phase 1 ongoing",audience:"Front desk / office manager",summary:"Login + navigation, share the pre-qual link, encourage immediate testing.",assets:["Portal Guide","QR signage","QR landing page"],hubspot:"#",notes:"CS: Follow up if unopened."},
+  p1_e3:{name:"Marketing Materials to Get You Started",day:"+4 days",trigger:"Phase 1 ongoing",audience:"Front desk / marketing contact",summary:"Introduce ready-made in-practice and online materials.",assets:["Canva flyer","Social media templates","Client email template"],hubspot:"#",notes:"CS: Offer customization help."},
+  p1_e4:{name:"Try a Test Invoice",day:"+4 days",trigger:"Phase 1 ongoing",audience:"Front desk / office manager",summary:"How to submit a test invoice; practice before live use.",assets:["Test invoice guide","Walkthrough video"],hubspot:"#",notes:"CS: Monitor for test activity."},
+  p1_e5:{name:"Tips for Approvals",day:"+4 days",trigger:"Phase 1 ongoing",audience:"Merchant primary contact",summary:"Best practices to increase approvals; avoid common mistakes.",assets:["Approval tips PDF"],hubspot:"#",notes:"CS: Review applications if any."},
+  p1_e6:{name:"Help Your Clients Say Yes",day:"+4 days",trigger:"Phase 1 ongoing",audience:"Merchant primary contact",summary:"Positioning financing to clients; role-play examples.",assets:["Client conversation script"],hubspot:"#",notes:"CS: Offer role-play support."},
+
+  // Phase 2
+  p2_e1:{name:"Congrats on Your First Loan",day:"Day 0",trigger:"First funded loan",audience:"Merchant primary contact",summary:"Celebrate milestone; why steady use matters; advocacy goals.",assets:["Advocacy checklist PDF"],hubspot:"#",notes:"CS: Optional congratulatory call."},
+  p2_e2:{name:"Promote TuaPay to Your Clients",day:"+5 days",trigger:"Phase 2 ongoing",audience:"Front desk / marketing contact",summary:"How to use marketing materials; links to resources.",assets:["Canva templates","Flyer PDF"],hubspot:"#",notes:""},
+  p2_e3:{name:"Add TuaPay to Your Website",day:"+5 days",trigger:"Phase 2 ongoing",audience:"Marketing contact",summary:"How to add TuaPay as a trusted partner on their site.",assets:["Logo files","HTML snippet"],hubspot:"#",notes:""},
+  p2_e4:{name:"Share Your Success",day:"+5 days",trigger:"Phase 2 ongoing",audience:"Merchant primary contact",summary:"Invite Google review and testimonial; co-marketing benefits.",assets:["Review link","Testimonial form"],hubspot:"#",notes:"CS: Follow up for testimonial."},
+  p2_e5:{name:"Become a TuaPay Star",day:"+5 days",trigger:"Phase 2 ongoing",audience:"Merchant primary contact",summary:"Recap advocacy actions; invite to referral program.",assets:["Referral program link"],hubspot:"#",notes:"CS: Review usage; branch to High or Low Usage."},
+
+  // High usage (clickable pill)
+  hi_touch:{name:"Monthly Touch Base",day:"Monthly",trigger:"High usage ongoing",audience:"Merchant primary contact",summary:"Recognition, light tips, and resource refreshers; soft advocacy asks.",assets:["(Varies monthly)"],hubspot:"#",notes:"Optionally include quarterly beta/case-study invites."},
+
+  // Low usage path emails
+  lo_e1:{name:"We Miss You at TuaPay",day:"Day 0",trigger:"Low usage ongoing",audience:"Merchant primary contact",summary:"Benefits refresher; prompt to submit a loan; offer help.",assets:["Growth coach booking","Test transaction guide"],hubspot:"#",notes:"CS: Call if unopened."},
+  lo_e2:{name:"Get Back in the Game (Incentive)",day:"+7 days",trigger:"Low usage ongoing",audience:"Merchant primary contact",summary:"Offer incentive for next loan; emphasize ease and value.",assets:["Incentive details"],hubspot:"#",notes:""},
+  lo_e3:{name:"Success Story Spotlight",day:"+7 days",trigger:"Low usage ongoing",audience:"Merchant primary contact",summary:"Share a similar merchant’s win as motivation.",assets:["Case study PDF"],hubspot:"#",notes:""},
+  lo_e4:{name:"Quick Tips for Approvals",day:"+7 days",trigger:"Low usage ongoing",audience:"Merchant primary contact",summary:"Short reminders to improve approvals and conversions.",assets:["Approval tips PDF"],hubspot:"#",notes:""}
 };
 
-/* ======= DATA (trimmed summaries; placeholder links) ======= */
-const DATA = {
-  lanes: [
-    { id:"phase1", y:90,  title:"PHASE 1 – New Merchant Onboarding (Goal: First Transaction)" },
-    { id:"phase2", y:300, title:"PHASE 2 – Advocacy Onboarding (Goal: Star Merchant Behaviours)" },
-    { id:"high",   y:520, title:"HIGH USAGE – Star Merchant Path" },
-    { id:"low",    y:660, title:"LOW USAGE – Re-activation Path" },
-    { id:"newstaff", y:800, title:"NEW STAFF – Re-training Path" }
-  ],
-  nodes: [
-    // ---------------- PHASE 1 ----------------
-    { id:"p1_start", lane:"phase1", x:60, type:"decision",
-      title:"Start: Sales → Merchant Success Handoff", sub:"HubSpot: Live – Onboarding",
-      details:{ day:"Day 0", trigger:"Deal → “Live – Onboarding”.", audience:"—",
-        summary:"Entry into Phase 1.", assets:[], notes:"Proceed to Phase 1 email sequence." } },
+/* ------------- Interactivity ------------- */
+const modal=document.getElementById('modal');
+const closeBtn=document.getElementById('closeBtn');
 
-    { id:"p1_e1", lane:"phase1", x:320, type:"email",
-      title:"Welcome to TuaPay", sub:"Email • Day 0",
-      details:{ day:"Day 0", trigger:"Start reached", audience:"Primary contact",
-        summary:"Welcome, benefits, portal login, 30‑day plan.", assets:pl(['Portal login','Quick Start Guide','Contact: Heidi']),
-        notes:"CS: Call if unopened after 2 days." } },
+document.querySelectorAll('g.email').forEach(g=>{
+  g.addEventListener('click',()=>{
+    const id=g.getAttribute('data-id');
+    const e=EMAILS[id]; if(!e) return;
+    set('#m_title', e.name);
+    const meta=document.getElementById('m_meta'); meta.innerHTML='';
+    [e.day && `DAY: ${e.day}`,'EMAIL'].filter(Boolean).forEach(t=>{
+      const s=document.createElement('span'); s.className='pill'; s.textContent=t; meta.appendChild(s);
+    });
+    set('#m_trigger', e.trigger || '—');
+    set('#m_audience', e.audience || '—');
+    set('#m_summary', e.summary || '—');
 
-    { id:"p1_e2", lane:"phase1", x:640, type:"email",
-      title:"Your Portal & Pre‑Qual Link", sub:"Email • +3 days",
-      details:{ day:"+3", trigger:"Phase 1 cadence", audience:"Front desk / office mgr",
-        summary:"Portal basics & pre‑qual share; try a quick test.", assets:pl(['Portal Guide','QR signage','QR landing page']),
-        notes:"CS: Follow up if unopened." } },
+    const assets=document.getElementById('m_assets'); assets.innerHTML='';
+    (e.assets||[]).forEach(label=>{
+      const a=document.createElement('a'); a.href=e.hubspot||'#'; a.textContent=label; a.onclick=(ev)=>ev.preventDefault(); assets.appendChild(a);
+    });
 
-    { id:"p1_e3", lane:"phase1", x:960, type:"email",
-      title:"Marketing Materials to Get You Started", sub:"Email • +4 days",
-      details:{ day:"+4", trigger:"Phase 1 cadence", audience:"Front desk / marketing",
-        summary:"Ready‑made materials for practice & online.", assets:pl(['Canva flyer','Social templates','Client email template']),
-        notes:"CS: Offer customization help." } },
+    set('#m_notes', (e.hubspot && `HubSpot preview: ${e.hubspot}`) || (e.notes||''));
 
-    { id:"p1_call1", lane:"phase1", x:1280, type:"call",
-      title:"MS Call 1", sub:"Call • +4 days",
-      details:{ day:"+4", trigger:"Phase 1 cadence", audience:"Primary contact",
-        summary:"Check access; remove early barriers; push first transaction.", assets:[],
-        notes:"Purpose: ensure readiness for first loan." } },
-
-    { id:"p1_e4", lane:"phase1", x:1600, type:"email",
-      title:"Try a Test Invoice", sub:"Email • +4 days",
-      details:{ day:"+4", trigger:"Phase 1 cadence", audience:"Front desk / office mgr",
-        summary:"How to submit a test invoice; practice before live.", assets:pl(['Test invoice guide','Walkthrough video']),
-        notes:"CS: Monitor for test activity." } },
-
-    { id:"p1_e5", lane:"phase1", x:1920, type:"email",
-      title:"Tips for Approvals", sub:"Email • +4 days",
-      details:{ day:"+4", trigger:"Phase 1 cadence", audience:"Primary contact",
-        summary:"Best practices to lift approval rates.", assets:pl(['Approval tips PDF']),
-        notes:"CS: Review applications if any." } },
-
-    { id:"p1_e6", lane:"phase1", x:2240, type:"email",
-      title:"Help Your Clients Say Yes", sub:"Email • +4 days",
-      details:{ day:"+4", trigger:"Phase 1 cadence", audience:"Primary contact",
-        summary:"Positioning scripts & role‑play.", assets:pl(['Conversation script']),
-        notes:"CS: Offer role‑play." } },
-
-    { id:"p1_call2", lane:"phase1", x:2560, type:"call",
-      title:"MS Call 2 – Final 30‑Day Check‑In", sub:"Call • +3 days",
-      details:{ day:"+3", trigger:"Phase 1 cadence", audience:"Primary contact",
-        summary:"Ensure first loan; address blockers; choose next step.", assets:[],
-        notes:"Purpose: confirm success or route to Sales." } },
-
-    { id:"p1_decision1", lane:"phase1", x:2880, type:"decision",
-      title:"Decision: First funded loan?", sub:"Branch",
-      details:{ day:"—", trigger:"Funded loan within ~30 days?", audience:"—",
-        summary:"Yes → Phase 2. No by Day 30 → Sales.", assets:[], notes:"Monitored in HubSpot." } },
-
-    // ---------------- PHASE 2 ----------------
-    { id:"p2_e1", lane:"phase2", x:320, type:"email",
-      title:"Congrats on Your First Loan", sub:"Email • Day 0",
-      details:{ day:"Day 0", trigger:"First funded loan", audience:"Primary contact",
-        summary:"Celebrate; outline steady‑use benefits; set advocacy goals.", assets:pl(['Advocacy checklist']),
-        notes:"CS: Optional congrats call." } },
-
-    { id:"p2_e2", lane:"phase2", x:640, type:"email",
-      title:"Promote TuaPay to Your Clients", sub:"Email • +5 days",
-      details:{ day:"+5", trigger:"Phase 2 cadence", audience:"Front desk / marketing",
-        summary:"Using marketing materials; link to resources.", assets:pl(['Canva templates','Flyer PDF']),
-        notes:"" } },
-
-    { id:"p2_call1", lane:"phase2", x:960, type:"call",
-      title:"MS Call – Early Usage Check", sub:"Call • +5 days",
-      details:{ day:"+5", trigger:"Phase 2 cadence", audience:"Primary contact",
-        summary:"Review early transactions; encourage advocacy; troubleshoot.", assets:[],
-        notes:"Purpose: surface barriers & commitments." } },
-
-    { id:"p2_e3", lane:"phase2", x:1280, type:"email",
-      title:"Add TuaPay to Your Website", sub:"Email • +5 days",
-      details:{ day:"+5", trigger:"Phase 2 cadence", audience:"Marketing contact",
-        summary:"How to list TuaPay on their website.", assets:pl(['Logo files','HTML snippet']),
-        notes:"" } },
-
-    { id:"p2_e4", lane:"phase2", x:1600, type:"email",
-      title:"Share Your Success", sub:"Email • +5 days",
-      details:{ day:"+5", trigger:"Phase 2 cadence", audience:"Primary contact",
-        summary:"Request Google review & testimonial; co‑marketing.", assets:pl(['Review link','Testimonial form']),
-        notes:"CS: Follow up for testimonial." } },
-
-    { id:"p2_e5", lane:"phase2", x:1920, type:"email",
-      title:"Become a TuaPay Star", sub:"Email • +5 days",
-      details:{ day:"+5", trigger:"Phase 2 cadence", audience:"Primary contact",
-        summary:"Recap actions; invite to referral program.", assets:pl(['Referral program']),
-        notes:"CS: Review usage → branch." } },
-
-    { id:"p2_decision1", lane:"phase2", x:2240, type:"decision",
-      title:"Decision: Usage threshold met?", sub:"Branch to High/Low",
-      details:{ day:"—", trigger:"Meets usage & advocacy criteria (TBD)?", audience:"—",
-        summary:"Yes → High Usage; No → Low Usage.", assets:[], notes:"Threshold TBD." } },
-
-    // -------------- HIGH USAGE --------------
-    { id:"hi_monthly", lane:"high", x:320, type:"email",
-      title:"Monthly Touch Base Email", sub:"Monthly",
-      details:{ day:"Monthly", trigger:"High usage ongoing", audience:"Primary contact",
-        summary:"Recognition, light tips, refreshers.", assets:pl(['(Varies monthly)']),
-        notes:"—" } },
-
-    { id:"hi_quarterly", lane:"high", x:640, type:"email",
-      title:"Quarterly Beta/Case Study Invite", sub:"Quarterly",
-      details:{ day:"Quarterly", trigger:"High usage ongoing", audience:"Primary contact",
-        summary:"Invite to beta features or case studies.", assets:pl(['Beta sign‑up','Case study form']),
-        notes:"CS: Two calls/year for relationship." } },
-
-    // --------------- LOW USAGE ---------------
-    { id:"lo_e1", lane:"low", x:320, type:"email",
-      title:"We Miss You at TuaPay", sub:"Email • Day 0",
-      details:{ day:"Day 0", trigger:"Low usage ongoing", audience:"Primary contact",
-        summary:"Benefits refresher; prompt next loan; offer help.", assets:pl(['Coach booking','Test transaction guide']),
-        notes:"CS: Call if unopened." } },
-
-    { id:"lo_e2", lane:"low", x:640, type:"email",
-      title:"Get Back in the Game (Incentive)", sub:"Email • +7 days",
-      details:{ day:"+7", trigger:"Low usage ongoing", audience:"Primary contact",
-        summary:"Incentive for next loan; ease & value.", assets:pl(['Incentive details']),
-        notes:"" } },
-
-    { id:"lo_call", lane:"low", x:960, type:"call",
-      title:"MS Call – Barrier Check", sub:"Call • +7 days",
-      details:{ day:"+7", trigger:"Low usage ongoing", audience:"Primary contact",
-        summary:"Find obstacles; offer training/solutions; prompt action.", assets:[],
-        notes:"Purpose: diagnose & next step." } },
-
-    { id:"lo_e3", lane:"low", x:1280, type:"email",
-      title:"Success Story Spotlight", sub:"Email • +7 days",
-      details:{ day:"+7", trigger:"Low usage ongoing", audience:"Primary contact",
-        summary:"Share similar merchant win as motivation.", assets:pl(['Case study PDF']),
-        notes:"" } },
-
-    { id:"lo_e4", lane:"low", x:1600, type:"email",
-      title:"Quick Tips for Approvals", sub:"Email • +7 days",
-      details:{ day:"+7", trigger:"Low usage ongoing", audience:"Primary contact",
-        summary:"Short approval/conversion tips.", assets:pl(['Approval tips PDF']),
-        notes:"" } },
-
-    // --------------- NEW STAFF ---------------
-    { id:"ns_e1", lane:"newstaff", x:320, type:"email",
-      title:"Welcome to TuaPay (New Staff)", sub:"Email • Day 0",
-      details:{ day:"Day 0", trigger:"Added to New Staff list", audience:"New staff contact",
-        summary:"Explain training sequence and how to start fast.", assets:pl(['Portal login','Quick Start guide','Heidi’s contact']),
-        notes:"CS: Personalize welcome." } },
-
-    { id:"ns_to_phase1", lane:"newstaff", x:640, type:"decision",
-      title:"Enter Phase 1 at Email 2", sub:"+3 days",
-      details:{ day:"+3", trigger:"Phase 1 cadence", audience:"New staff contact",
-        summary:"Continue with “Your Portal & Pre‑Qual Link”, then full Phase 1.", assets:pl(['Phase 1 assets']),
-        notes:"Optional MS call after Email 2." } },
-  ],
-  edges: [
-    // Phase 1 chain
-    ["p1_start","p1_e1"],["p1_e1","p1_e2"],["p1_e2","p1_e3"],["p1_e3","p1_call1"],
-    ["p1_call1","p1_e4"],["p1_e4","p1_e5"],["p1_e5","p1_e6"],["p1_e6","p1_call2"],["p1_call2","p1_decision1"],
-    // Branch to Phase 2 on success
-    ["p1_decision1","p2_e1"],
-    // Phase 2 chain
-    ["p2_e1","p2_e2"],["p2_e2","p2_call1"],["p2_call1","p2_e3"],["p2_e3","p2_e4"],["p2_e4","p2_e5"],["p2_e5","p2_decision1"],
-    // Phase 2 decision to High/Low
-    ["p2_decision1","hi_monthly"],["p2_decision1","lo_e1"],
-    // High usage
-    ["hi_monthly","hi_quarterly"],
-    // Low usage
-    ["lo_e1","lo_e2"],["lo_e2","lo_call"],["lo_call","lo_e3"],["lo_e3","lo_e4"],
-    // New staff path
-    ["ns_e1","ns_to_phase1"],["ns_to_phase1","p1_e2"]
-  ]
-};
-
-/* ======= RENDERING ======= */
-const svg = document.getElementById('flow');
-const gLanes = document.getElementById('lanes');
-const gNodes = document.getElementById('nodes');
-const gEdges = document.getElementById('connectors');
-
-const LANE_W = 4200;  // wide canvas; auto expands below if needed
-const LANE_H = 120;
-
-// Draw lanes
-DATA.lanes.forEach(l => {
-  gLanes.appendChild(el('rect',{ x:10, y:l.y-40, width:LANE_W, height:LANE_H, rx:12, ry:12, fill:'#fff', stroke:'#e7eef7' }));
-  const title = el('text',{ x:24, y:l.y-52, class:'lane-title' });
-  title.textContent = l.title;
-  gLanes.appendChild(title);
-
-  // Anchor for hash links
-  const a = document.createElementNS('http://www.w3.org/2000/svg','a');
-  a.setAttribute('id', l.id);
-  a.setAttribute('href', `#${l.id}`);
-  a.appendChild(el('rect',{x:0,y:l.y-60,width:1,height:1,fill:'transparent'}));
-  gLanes.appendChild(a);
-});
-
-const laneY = Object.fromEntries(DATA.lanes.map(l => [l.id, l.y]));
-
-const NODE_W = 260, NODE_H = 64;
-const nodeById = {};
-DATA.nodes.forEach(n => {
-  const group = el('g',{ transform:`translate(${n.x},${laneY[n.lane]})`, cursor:'pointer' });
-  if(n.type==='decision'){
-    // diamond
-    const size = NODE_H*0.78;
-    const cx = NODE_W/2, cy = NODE_H/2;
-    group.appendChild(el('rect',{
-      x:cx-size/2, y:cy-size/2, width:size, height:size,
-      transform:`rotate(45 ${cx} ${cy})`,
-      fill:'var(--decision-fill)', stroke:'var(--decision-border)', 'stroke-width':2, rx:10, ry:10
-    }));
-  }else{
-    // rounded rect
-    let fill = "#fff", stroke = "#ccc";
-    if(n.type==='call'){ fill='var(--call-fill)'; stroke='var(--call-border)'; }
-    if(n.type==='email'){ stroke = emailAccents[n.lane] || "#bbb"; }
-    group.appendChild(el('rect',{ x:0, y:0, width:NODE_W, height:NODE_H, rx:10, ry:10, fill:fill, stroke:stroke, 'stroke-width':2 }));
-
-    // email accent stripe
-    if(n.type==='email'){
-      group.appendChild(el('rect',{ x:0, y:0, width:6, height:NODE_H, fill:emailAccents[n.lane] || "#bbb" }));
-    }
-  }
-  // labels
-  const t1 = el('text',{ x:18, y:24, class:'node-title' }); t1.textContent = n.title;
-  const t2 = el('text',{ x:18, y:44, class:'node-sub' }); t2.textContent = n.sub ?? '';
-  group.appendChild(t1); group.appendChild(t2);
-
-  group.addEventListener('click', () => openModal(n));
-
-  gNodes.appendChild(group);
-  nodeById[n.id] = { x:n.x, y:laneY[n.lane], w:NODE_W, h:NODE_H };
-});
-
-// Connectors (elbow style)
-DATA.edges.forEach(([a,b])=>{
-  const A = nodeById[a], B = nodeById[b];
-  if(!A || !B) return;
-  const x1 = A.x + A.w, y1 = A.y + A.h/2;
-  const x2 = B.x,       y2 = B.y + B.h/2;
-  const mid = (x1 + x2)/2;
-  const d = `M ${x1} ${y1} L ${mid} ${y1} L ${mid} ${y2} L ${x2} ${y2}`;
-  gEdges.appendChild(el('path',{ d, stroke:'#98a9bc', 'stroke-width':2, fill:'none', 'marker-end':'url(#arrow)' }));
-});
-
-// Utility
-function el(tag, attrs={}){ const e=document.createElementNS('http://www.w3.org/2000/svg',tag); for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v); return e; }
-
-// Modal handling
-const modal = document.getElementById('modal');
-const closeBtn = document.getElementById('closeBtn');
-function openModal(node){
-  setText('m_title', node.title);
-  // meta pills
-  const m = document.getElementById('m_meta'); m.innerHTML = '';
-  const pills = [];
-  if(node.type) pills.push(node.type.toUpperCase());
-  if(node.details?.day) pills.push(node.details.day);
-  pills.forEach(p => { const s=document.createElement('span'); s.className='pill'; s.textContent=p; m.appendChild(s); });
-
-  setText('m_trigger', node.details?.trigger || '—');
-  setText('m_audience', node.details?.audience || '—');
-  setText('m_summary', node.details?.summary || '—');
-
-  const assets = document.getElementById('m_assets');
-  assets.innerHTML = '';
-  (node.details?.assets || []).forEach(a=>{
-    const link = document.createElement('a');
-    link.href = a.href || '#';
-    link.textContent = a.label || a;
-    link.addEventListener('click', e => e.preventDefault());
-    assets.appendChild(link);
+    modal.classList.add('show');
   });
+});
 
-  setText('m_notes', node.details?.notes || '');
-
-  modal.classList.add('show');
-  modal.setAttribute('aria-hidden','false');
-}
-function setText(id, txt){ document.getElementById(id).textContent = txt; }
-function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); }
-closeBtn.addEventListener('click', closeModal);
-modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
-
-// Auto expand width if needed
-(function autoWidth(){
-  let maxX = 0;
-  for(const n of Object.values(nodeById)) maxX = Math.max(maxX, n.x + n.w);
-  const pad = 140;
-  const needed = maxX + pad;
-  const current = parseInt(svg.getAttribute('width'),10);
-  if(needed > current){
-    svg.setAttribute('width', needed);
-    svg.setAttribute('viewBox', `0 0 ${needed} 920`);
-  }
-})();
-
-/* helper for quick placeholder links */
-function pl(labels){ return labels.map(t=>({label:t, href:'#'})); }
+function set(sel,txt){document.querySelector(sel).textContent=txt;}
+closeBtn.addEventListener('click',()=>modal.classList.remove('show'));
+modal.addEventListener('click',e=>{ if(e.target===modal) modal.classList.remove('show'); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') modal.classList.remove('show'); });
 </script>
 </body>
 </html>
